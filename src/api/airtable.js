@@ -1,10 +1,10 @@
 import Airtable from 'airtable';
 
-const pat = import.meta.env.VITE_AIRTABLE_PAT;
-const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID;
+const pat = import.meta.env.VITE_AIRTABLE_PAT || 'placeholder';
+const baseId = import.meta.env.VITE_AIRTABLE_BASE_ID || 'placeholder';
 
-if (!pat || !baseId) {
-  console.error("Missing Airtable environment variables: VITE_AIRTABLE_PAT or VITE_AIRTABLE_BASE_ID");
+if (!import.meta.env.VITE_AIRTABLE_PAT || !import.meta.env.VITE_AIRTABLE_BASE_ID) {
+  console.warn("Airtable environment variables are missing! Check Vercel Environment Variables.");
 }
 
 export const base = new Airtable({ apiKey: pat }).base(baseId);
