@@ -230,7 +230,7 @@ export default function HistoryPage() {
             <HistoryTable
               title="Gasoline"
               tableName={TABLE_NAMES.GASOLINE}
-              columns={['Date', 'Vehicle Name', 'Driver Name', 'Fuel Used (L)', 'Total Price']}
+              columns={['Date', 'Vehicle Name', 'Driver Name', 'Fuel Used (L)', 'Total Price (Baht)']}
               dateRange={dateRange}
               renderRow={(row, get) => (
                 <>
@@ -246,7 +246,7 @@ export default function HistoryPage() {
                 'Vehicle Name': getName(get('vehicle'), trucks, loadTrucks),
                 'Driver Name': getName(get('driver'), drivers, loadDrivers),
                 'Fuel Used (L)': get('fuel used liters') || get('fuel_used_liters') || get('fuel') || '-',
-                'Total Price': get('total price') || get('total_price') || '-'
+                'Total Price (Baht)': get('total price') || get('total_price') || '-'
               })}
             />
           )}

@@ -118,7 +118,7 @@ export default function GasolineForm() {
             />
           </div>
           <div className="form-group mb-0">
-            <label className="form-label">Total Fuel Price</label>
+            <label className="form-label">Total Fuel Price (Baht)</label>
             <input
               type="number"
               step="0.01"
@@ -170,7 +170,7 @@ export default function GasolineForm() {
           'Vehicle': selectedLabels.vehicle,
           'Driver': selectedLabels.driver,
           'Fuel Used (Liters)': formData.fuel_used_liters,
-          'Total Fuel Price': formData.total_price || '(Not specified)',
+          'Total Fuel Price (Baht)': formData.total_price || '(Not specified)',
           'Notes': formData.notes || '(None)'
         }}
       />
