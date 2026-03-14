@@ -5,14 +5,23 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'utils': ['lucide-react', 'airtable']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react'
+            }
+            if (id.includes('airtable')) {
+              return 'vendor-airtable'
+            }
+            if (id.includes('lucide')) {
+              return 'vendor-icons'
+            }
+          }
         }
       }
-    },
-    chunkSizeWarningLimit: 1000
+    }
   }
 })
