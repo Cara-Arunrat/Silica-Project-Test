@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTransactions } from '../../api/hooks';
 import { TABLE_NAMES } from '../../api/airtable';
@@ -12,8 +12,8 @@ export default function GasolineForm() {
     date: new Date().toISOString().split('T')[0],
     vehicle_id: '',
     driver_id: '',
-    meter_start: '',
-    meter_end: '',
+    fuel_used_liters: '',
+    total_price: '',
     notes: ''
   });
 
@@ -23,35 +23,17 @@ export default function GasolineForm() {
     driver: ''
   });
 
-  // Auto-calculated
-  const [fuelUsed, setFuelUsed] = useState('');
-
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [success, setSuccess] = useState('');
-  const [validationError, setValidationError] = useState('');
-
-  useEffect(() => {
-    const start = parseFloat(formData.meter_start);
-    const end = parseFloat(formData.meter_end);
-
-    if (!isNaN(start) && !isNaN(end)) {
-      if (end >= start) {
-        setFuelUsed((end - start).toFixed(2));
-        setValidationError('');
-      } else {
-        setFuelUsed('');
-        setValidationError('Meter End must be greater than or equal to Meter Start.');
-      }
-    } else {
-      setFuelUsed('');
-      setValidationError('');
-    }
-  }, [formData.meter_start, formData.meter_end]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validationError || !fuelUsed) return;
+    const fuel = parseFloat(formData.fuel_used_liters);
+    if (isNaN(fuel) || fuel <= 0) {
+      alert("Fuel used must be a positive number.");
+      return;
+    }
     setShowConfirm(true);
   };
 
@@ -65,14 +47,13 @@ export default function GasolineForm() {
         date: formData.date,
         vehicle_id: [formData.vehicle_id],
         driver_id: [formData.driver_id],
-        meter_start: parseFloat(formData.meter_start),
-        meter_end: parseFloat(formData.meter_end),
-        fuel_used: parseFloat(fuelUsed),
+        fuel_used_liters: parseFloat(formData.fuel_used_liters),
+        total_price: parseFloat(formData.total_price) || 0,
         notes: formData.notes
       });
       setSuccess('Gasoline log recorded successfully.');
       setFormData(prev => ({
-        ...prev, vehicle_id: '', driver_id: '', meter_start: '', meter_end: '', notes: ''
+        ...prev, vehicle_id: '', driver_id: '', fuel_used_liters: '', total_price: '', notes: ''
       }));
     } catch (err) {
       alert(`Failed to save: ${err.message}`);
@@ -88,7 +69,6 @@ export default function GasolineForm() {
       <h3 className="text-xl font-bold mb-md">Record Gasoline Usage</h3>
 
       {success && <div className="p-sm bg-success text-success mb-md rounded">{success}</div>}
-      {validationError && <div className="p-sm bg-danger text-danger mb-md rounded" style={{ backgroundColor: 'var(--danger-bg)' }}>{validationError}</div>}
 
       <form onSubmit={handleSubmit} className="card">
         <div className="form-group mb-md">
@@ -124,42 +104,30 @@ export default function GasolineForm() {
           />
         </div>
 
-        <div className="grid-2-col gap-md p-md mb-md" style={{ backgroundColor: 'var(--bg-color)', borderRadius: 'var(--border-radius)' }}>
+        <div className="grid-2-col gap-md mb-md">
           <div className="form-group mb-0">
-            <label className="form-label">Meter Start</label>
+            <label className="form-label">Fuel Used (Liters)</label>
             <input
               type="number"
               step="0.01"
               className="form-control"
-              value={formData.meter_start}
-              onChange={(e) => setFormData({ ...formData, meter_start: e.target.value })}
+              placeholder="e.g. 45.5"
+              value={formData.fuel_used_liters}
+              onChange={(e) => setFormData({ ...formData, fuel_used_liters: e.target.value })}
               required
             />
           </div>
           <div className="form-group mb-0">
-            <label className="form-label">Meter End</label>
+            <label className="form-label">Total Fuel Price</label>
             <input
               type="number"
               step="0.01"
-              className={`form-control ${validationError ? 'border-danger' : ''}`}
-              value={formData.meter_end}
-              onChange={(e) => setFormData({ ...formData, meter_end: e.target.value })}
-              required
+              className="form-control"
+              placeholder="e.g. 1500.00"
+              value={formData.total_price}
+              onChange={(e) => setFormData({ ...formData, total_price: e.target.value })}
             />
           </div>
-        </div>
-
-        <div className="form-group mb-md">
-          <label className="form-label flex justify-between">
-            <span>Fuel Used (Calculated)</span>
-          </label>
-          <input
-            type="text"
-            className="form-control font-bold"
-            value={fuelUsed ? `${fuelUsed} Units` : ''}
-            disabled
-            style={{ backgroundColor: 'var(--bg-color)' }}
-          />
         </div>
 
         <div className="form-group">
@@ -176,7 +144,7 @@ export default function GasolineForm() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => setFormData(p => ({ ...p, vehicle_id: '', driver_id: '', meter_start: '', meter_end: '', notes: '' }))}
+            onClick={() => setFormData(p => ({ ...p, vehicle_id: '', driver_id: '', fuel_used_liters: '', total_price: '', notes: '' }))}
             disabled={isSubmitting}
           >
             Clear
@@ -184,7 +152,7 @@ export default function GasolineForm() {
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isSubmitting || loading || !!validationError || !fuelUsed}
+            disabled={isSubmitting || loading}
           >
             {isSubmitting ? 'Saving...' : 'Review & Save'}
           </button>
@@ -201,9 +169,8 @@ export default function GasolineForm() {
           'Date': formData.date,
           'Vehicle': selectedLabels.vehicle,
           'Driver': selectedLabels.driver,
-          'Meter Start': `${formData.meter_start}`,
-          'Meter End': `${formData.meter_end}`,
-          'Total Fuel Used': `${fuelUsed} Units`,
+          'Fuel Used (Liters)': formData.fuel_used_liters,
+          'Total Fuel Price': formData.total_price || '(Not specified)',
           'Notes': formData.notes || '(None)'
         }}
       />

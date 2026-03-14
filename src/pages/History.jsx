@@ -230,25 +230,23 @@ export default function HistoryPage() {
             <HistoryTable
               title="Gasoline"
               tableName={TABLE_NAMES.GASOLINE}
-              columns={['Date', 'Vehicle Name', 'Driver Name', 'Meter Start', 'Meter End', 'Fuel Used']}
+              columns={['Date', 'Vehicle Name', 'Driver Name', 'Fuel Used (L)', 'Total Price']}
               dateRange={dateRange}
               renderRow={(row, get) => (
                 <>
                   <td>{get('date')}</td>
                   <td>{getName(get('vehicle'), trucks, loadTrucks)}</td>
                   <td>{getName(get('driver'), drivers, loadDrivers)}</td>
-                  <td>{get('meter start')}</td>
-                  <td>{get('meter end')}</td>
-                  <td className="font-medium text-primary">{get('fuel')} units</td>
+                  <td className="font-medium text-primary">{get('fuel used liters') || get('fuel_used_liters') || get('fuel') || '-'}</td>
+                  <td>{get('total price') || get('total_price') || '-'}</td>
                 </>
               )}
               onExport={(get) => ({
                 'Date': get('date'),
                 'Vehicle Name': getName(get('vehicle'), trucks, loadTrucks),
                 'Driver Name': getName(get('driver'), drivers, loadDrivers),
-                'Meter Start': get('meter start'),
-                'Meter End': get('meter end'),
-                'Fuel Used': get('fuel')
+                'Fuel Used (L)': get('fuel used liters') || get('fuel_used_liters') || get('fuel') || '-',
+                'Total Price': get('total price') || get('total_price') || '-'
               })}
             />
           )}
