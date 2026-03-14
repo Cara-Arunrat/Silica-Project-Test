@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTransactions, findKey } from '../../api/hooks';
-import * as XLSX from 'xlsx';
 import { Download } from 'lucide-react';
 
 export default function HistoryTable({ title, tableName, columns, renderRow, onExport, dateRange, filterRecord }) {
@@ -44,38 +43,45 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
     return result;
   }, [data, dateRange, filterRecord]);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!filteredData || filteredData.length === 0) {
       alert("No data to export");
       return;
     }
 
-    const exportRows = filteredData.map(record => {
-      const get = (search) => {
-        const key = findKey(Object.keys(record), search);
-        const val = key ? record[key] : null;
-        if (Array.isArray(val)) return val.join(', ');
-        return val;
-      };
+    try {
+      // Load XLSX dynamically to keep initial bundle size small
+      const XLSX = await import('xlsx');
+      
+      const exportRows = filteredData.map(record => {
+        const get = (search) => {
+          const key = findKey(Object.keys(record), search);
+          const val = key ? record[key] : null;
+          if (Array.isArray(val)) return val.join(', ');
+          return val;
+        };
 
-      if (onExport) {
-        return onExport(get, record);
-      }
+        if (onExport) {
+          return onExport(get, record);
+        }
 
-      // Default export if onExport not provided
-      const row = {};
-      columns.forEach(col => {
-        row[col] = get(col);
+        const row = {};
+        columns.forEach(col => {
+          row[col] = get(col);
+        });
+        return row;
       });
-      return row;
-    });
 
-    const worksheet = XLSX.utils.json_to_sheet(exportRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, title);
-    
-    const fileName = `${title}_History_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, title);
+      
+      const fileName = `${title}_History_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export Excel file. Please try again.");
+    }
   };
 
   if (error) return <div className="text-danger p-md">Error loading {title}: {error}</div>;
