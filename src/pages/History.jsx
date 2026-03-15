@@ -45,6 +45,7 @@ export default function HistoryPage() {
   const { data: customers, loading: loadCustomers } = useMasterData(TABLE_NAMES.CUSTOMERS);
   const { data: grades, loading: loadGrades } = useMasterData(TABLE_NAMES.PRODUCT_GRADES);
   const { data: materials, loading: loadMaterials } = useMasterData(TABLE_NAMES.RAW_MATERIALS);
+  const { data: users, loading: loadUsers } = useMasterData(TABLE_NAMES.USERS);
 
   // Helper to resolve linked record names
   const getName = useMemo(() => (ids, masterList, isLoading, tableName = '') => {
@@ -199,6 +200,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.PURCHASES}
               columns={['Date', 'Supplier', 'Material', 'Tons (t)', 'Price (฿)', 'Total Cost (฿)']}
               dateRange={dateRange}
+              users={users}
               filterRecord={(record, safeGet) => {
                 if (!supplierFilter) return true;
                 const val = safeGet('supplier') || safeGet('supplier_id') || safeGet('Supplier');
@@ -234,6 +236,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.GASOLINE_PURCHASES}
               columns={['Arrival Date', 'Fuel Added (L)']}
               dateRange={dateRange}
+              users={users}
               renderRow={(row, get) => (
                 <>
                   <td>{get('date') || get('purchase_date') || get('purchase date')}</td>
@@ -253,6 +256,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.DELIVERIES}
               columns={['Date', 'Customer Name', 'Product Grade', 'Vehicle Name', 'Driver Name', 'Weight (kg)', 'Cert No.', 'Weighing Sequence No.']}
               dateRange={dateRange}
+              users={users}
               filterRecord={(record, safeGet) => {
                 if (!customerFilter) return true;
                 const val = safeGet('customer');
@@ -289,6 +293,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.GASOLINE}
               columns={['Date', 'Vehicle Name', 'Driver Name', 'Fuel Used (L)', 'Total Price (Baht)']}
               dateRange={dateRange}
+              users={users}
               renderRow={(row, get) => (
                 <>
                   <td>{get('date')}</td>
@@ -314,6 +319,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.VEHICLES}
               columns={['Vehicle Name', 'Vehicle Type', 'Truck Plate', 'Trailer Plate']}
               dateRange={null} // Master data doesn't usually filter by date
+              users={users}
               renderRow={(row, get) => (
                 <>
                   <td className="font-bold">{get('vehicle_name') || get('name')}</td>
@@ -337,6 +343,7 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.PLAN}
               columns={['Target Month', 'Customer Name', 'Planned Tons', 'Submitted Date']}
               dateRange={dateRange}
+              users={users}
               filterRecord={(record, safeGet) => {
                 if (!customerFilter) return true;
                 const val = safeGet('customer');

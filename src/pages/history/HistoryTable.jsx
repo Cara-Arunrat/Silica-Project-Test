@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTransactions, findKey } from '../../api/hooks';
 import { Download, Trash2 } from 'lucide-react';
 
-export default function HistoryTable({ title, tableName, columns, renderRow, onExport, dateRange, filterRecord }) {
+export default function HistoryTable({ title, tableName, columns, renderRow, onExport, dateRange, filterRecord, users = [] }) {
   const { data, loading, error, deleteRecord } = useTransactions(tableName);
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -70,7 +70,7 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
     try {
       const XLSX = await import('xlsx');
       
-      const exportRows = filteredData.map(record => {
+      const exportData = filteredData.map(record => {
         const get = (search) => {
           const key = findKey(Object.keys(record), search);
           const val = key ? record[key] : null;
@@ -78,18 +78,31 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
           return val;
         };
 
-        if (onExport) {
-          return onExport(get, record);
+        const baseExport = onExport ? onExport(get, record) : columns.reduce((acc, col) => {
+          acc[col] = get(col);
+          return acc;
+        }, {});
+        
+        // Resolve Created By if it's an ID
+        let createdByRaw = get('created by') || get('author') || record._createdBy || '';
+        if (createdByRaw && typeof createdByRaw === 'object') {
+           createdByRaw = createdByRaw.name || createdByRaw.email || createdByRaw.id || JSON.stringify(createdByRaw);
+        }
+        
+        let createdByName = createdByRaw;
+        if (createdByRaw && String(createdByRaw).startsWith('rec') && users.length > 0) {
+          const matchedUser = users.find(u => u._id === createdByRaw || u.id === createdByRaw);
+          if (matchedUser) createdByName = matchedUser.username || matchedUser.name || createdByRaw;
         }
 
-        const row = {};
-        columns.forEach(col => {
-          row[col] = get(col);
-        });
-        return row;
+        return {
+          ...baseExport,
+          'Created At': get('created time') || record._createdTime,
+          'Created By': createdByName
+        };
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(exportRows);
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, title);
       
@@ -116,7 +129,7 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
   if (error) return <div className="text-danger p-md">Error loading {title}: {error}</div>;
 
   return (
-    <div className="card mb-lg">
+    <div className="history-table mt-lg animate-fade-in">
       <div className="flex justify-between items-center mb-md flex-wrap gap-md">
         <div>
           <h3 className="text-lg font-bold">{title} History</h3>
@@ -171,6 +184,12 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
 
                   if (createdBy && typeof createdBy === 'object') {
                     createdBy = createdBy.name || createdBy.email || createdBy.id || JSON.stringify(createdBy);
+                  }
+                  
+                  // ID Resolution logic
+                  if (createdBy && String(createdBy).startsWith('rec') && users.length > 0) {
+                    const matchedUser = users.find(u => u._id === createdBy || u.id === createdBy);
+                    if (matchedUser) createdBy = matchedUser.username || matchedUser.name || createdBy;
                   }
                   
                   return (
