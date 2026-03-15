@@ -1,5 +1,6 @@
 import React from 'react';
 import { useMasterData } from '../api/hooks';
+import { TABLE_NAMES } from '../api/airtable';
 
 export default function MasterDataSelect({
   tableName,
@@ -30,15 +31,21 @@ export default function MasterDataSelect({
     };
 
     let val = null;
-    if (tableName === 'Vehicles') val = findVal(['vehicle_name', 'plate_number']);
-    if (tableName === 'Customers') val = findVal(['customer_name']);
-    if (tableName === 'Suppliers') val = findVal(['supplier_name']);
-    if (tableName === 'Product_Grades') val = findVal(['grade_name']);
-    if (tableName === 'Raw_materials') val = findVal(['product_code']);
+    const lowerTable = tableName?.toLowerCase();
+
+    if (lowerTable === TABLE_NAMES.VEHICLES.toLowerCase()) val = findVal(['vehicle_name', 'plate_number']);
+    if (lowerTable === TABLE_NAMES.CUSTOMERS.toLowerCase()) val = findVal(['customer_name']);
+    if (lowerTable === TABLE_NAMES.SUPPLIERS.toLowerCase()) val = findVal(['supplier_name']);
+    if (lowerTable === TABLE_NAMES.PRODUCT_GRADES.toLowerCase()) val = findVal(['grade_name']);
+    if (lowerTable === TABLE_NAMES.RAW_MATERIALS.toLowerCase()) val = findVal(['product_code', 'Name', 'material_name']);
 
     if (val) return val;
 
-    // Generic fallback: Look for "name" or anything ending in " name" or "_name"
+    // Generic fallback: Priority logic
+    const fallback = findVal(['product_code', 'name', 'Name', 'username', 'text', 'label']);
+    if (fallback) return fallback;
+
+    // Last resort generic: Look for anything ending in " name" or "_name"
     const nameKey = Object.keys(item).find(k => {
       const lower = k.toLowerCase().trim();
       return lower === 'name' || lower.endsWith(' name') || lower.endsWith('_name');

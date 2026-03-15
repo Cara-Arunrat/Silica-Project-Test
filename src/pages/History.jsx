@@ -64,10 +64,12 @@ export default function HistoryPage() {
       const match = masterList.find(item => item._id === id || item.id === id);
       if (match) {
         // Special field logic
-        if (tableName === TABLE_NAMES.RAW_MATERIALS) return match.product_code || match.Name || id;
+        if (tableName === TABLE_NAMES.RAW_MATERIALS) {
+          return match.product_code || match.Name || match.material_name || id;
+        }
 
         // Try to find any field that looks like a name/text
-        return match.name || match.Name || match.username || match.text || 
+        return match.name || match.Name || match.product_code || match.username || match.text || 
                match[Object.keys(match).find(k => k.toLowerCase().includes('name'))] || 
                match[Object.keys(match).find(k => k.toLowerCase().includes('label'))] || id;
       }
