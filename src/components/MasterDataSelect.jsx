@@ -34,6 +34,7 @@ export default function MasterDataSelect({
     if (tableName === 'Customers') val = findVal(['customer_name']);
     if (tableName === 'Suppliers') val = findVal(['supplier_name']);
     if (tableName === 'Product_Grades') val = findVal(['grade_name']);
+    if (tableName === 'Raw_materials') val = findVal(['product_code']);
 
     if (val) return val;
 

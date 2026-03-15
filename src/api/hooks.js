@@ -87,7 +87,11 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'truck_plate': 'truck_plate',
         'trailer_plate': 'trailer_plate',
         'purchase_date': 'purchase_date',
-        'fuel_liters': 'fuel_liters'
+        'fuel_liters': 'fuel_liters',
+        'material_id': 'Raw Material',
+        'price_per_unit': 'Price_per_unit',
+        'total_cost': 'total_cost',
+        'product_code': 'product_code'
       };
       
       if (common[lowerKey]) {
