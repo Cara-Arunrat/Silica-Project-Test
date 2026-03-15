@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, FileInput, History, Database, LogOut } from 'lucide-react';
+import { Home, FileInput, History, Database, LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './AppShell.css';
 
@@ -87,7 +87,7 @@ export default function AppShell() {
             className="mobile-toggle" 
             onClick={() => setIsMobileOpen(true)}
           >
-            <Home size={20} />
+            <Menu size={20} />
           </button>
           
           <div className="header-breadcrumbs">

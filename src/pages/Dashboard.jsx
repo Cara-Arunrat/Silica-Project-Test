@@ -23,15 +23,16 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
   const trendArrow = isPositive ? '↑' : isNegative ? '↓' : '';
 
   return (
-    <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" style={{ padding: '24px' }}>
+    <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" 
+         style={{ padding: window.innerWidth < 480 ? '16px' : '24px' }}>
       {/* Status Badge - Balanced Refined Padding */}
       {status && (
         <div className={`absolute text-white uppercase tracking-widest font-black rounded-lg shadow-sm ${status === 'warning' ? 'bg-orange' : 'bg-success'}`} 
              style={{ 
-               top: '15px', 
-               right: '15px',
-               fontSize: '13px',
-               padding: '6px 16px',
+               top: window.innerWidth < 480 ? '10px' : '15px', 
+               right: window.innerWidth < 480 ? '10px' : '15px',
+               fontSize: window.innerWidth < 480 ? '10px' : '13px',
+               padding: window.innerWidth < 480 ? '4px 10px' : '6px 16px',
                zIndex: 10
              }}>
           {status}
@@ -40,29 +41,29 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
 
       <div className="flex flex-col h-full">
         {/* Larger Square Icon Background */}
-        <div className="rounded-xl flex items-center justify-center transition-transform group-hover:rotate-3 duration-500 shadow-sm mb-lg" 
+        <div className="rounded-xl flex items-center justify-center transition-transform group-hover:rotate-3 duration-500 shadow-sm mb-md lg:mb-lg" 
              style={{ 
-               width: '54px', 
-               height: '54px', 
+               width: window.innerWidth < 480 ? '42px' : '54px', 
+               height: window.innerWidth < 480 ? '42px' : '54px', 
                backgroundColor: 'rgba(var(--primary-rgb), 0.08)',
                flexShrink: 0
              }}>
-          <Icon size={24} className={colorClass} />
+          <Icon size={window.innerWidth < 480 ? 20 : 24} className={colorClass} />
         </div>
         
         {/* Lighter Gray Title - 13px & Unbolded */}
-        <p className="text-secondary opacity-70 uppercase tracking-widest mb-3" style={{ fontSize: '13px', fontWeight: 400 }}>{title}</p>
+        <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px', fontWeight: 400 }}>{title}</p>
         
-        <div className="flex items-baseline justify-between mt-auto" style={{ width: '100%' }}>
+        <div className="flex items-baseline justify-between mt-auto flex-wrap gap-xs" style={{ width: '100%' }}>
           {/* Value and Unit (13px & Bottom Aligned) */}
-          <div style={{ display: 'flex', alignItems: 'baseline', whiteSpace: 'nowrap', gap: '8px' }}>
-            <span className="text-3xl font-black text-slate-900 tracking-tighter" style={{ lineHeight: 1 }}>{value}</span>
-            <span className="text-secondary" style={{ fontSize: '13px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', whiteSpace: 'nowrap', gap: '4px' }}>
+            <span className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter" style={{ lineHeight: 1 }}>{value}</span>
+            <span className="text-secondary" style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
           </div>
           
           {/* Trend - 13px, No Background */}
           {trend !== undefined && (
-            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '13px' }}>
+            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px' }}>
               <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
               <span style={{ lineHeight: 1 }}>{Math.abs(parseFloat(trend)).toFixed(0)}%</span>
             </div>
@@ -466,7 +467,7 @@ export default function Dashboard() {
       </div>
 
       {/* SECTION 1: EXECUTIVE SUMMARY */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-md lg:gap-lg mb-xl">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-md lg:gap-lg mb-xl">
         <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" icon={Mountain} colorClass="text-primary" trend={trends.purchased} />
         <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" icon={Truck} colorClass="text-success" trend={trends.delivered} />
         <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" icon={TrendingDown} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} trend={trends.loss} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
