@@ -42,9 +42,8 @@ export default function MonthlyPlanForm() {
     try {
       await addRecord({
         month: formData.month,
-        customer_id: [formData.customer_id],
+        customer: [formData.customer_id],
         planned_tons: parseFloat(formData.planned_tons),
-        submitted_date: new Date().toISOString().split('T')[0],
         notes: formData.notes
       });
       setSuccess('Monthly Plan logged successfully.');

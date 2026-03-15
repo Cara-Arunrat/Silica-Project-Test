@@ -20,5 +20,6 @@ export const TABLE_NAMES = {
   DELIVERIES: 'Delivery',
   GASOLINE: 'Gasoline',
   PRODUCTION: 'Production_Records',
-  PLAN: 'Monthly_Plan'
+  PLAN: 'Monthly_Plan',
+  GASOLINE_PURCHASES: 'Gasoline_purchase'
 };
