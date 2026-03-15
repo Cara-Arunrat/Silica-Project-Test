@@ -27,6 +27,7 @@
     max-width: 280px;
     height: 100%;
     box-shadow: var(--shadow-lg);
+    z-index: 30;
   }
   
   .sidebar.mobile-open {
