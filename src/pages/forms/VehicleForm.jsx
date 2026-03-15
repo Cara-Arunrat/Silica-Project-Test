@@ -76,14 +76,28 @@ export default function VehicleForm() {
           
           <div className="form-group">
             <label className="form-label">Vehicle Type</label>
-            <input 
-              type="text" 
-              className="form-control" 
-              placeholder="e.g. 10 Wheeler"
-              value={formData.vehicle_type}
-              onChange={(e) => setFormData({...formData, vehicle_type: e.target.value})}
-              disabled={isSubmitting}
-            />
+            <div className="flex flex-wrap gap-sm mt-xs">
+              {['10 Wheeler', '6 Wheeler', '4 Wheeler'].map(type => (
+                <label key={type} className="flex items-center gap-xs cursor-pointer group">
+                  <input 
+                    type="radio"
+                    className="hidden"
+                    name="vehicle_type"
+                    value={type}
+                    checked={formData.vehicle_type === type}
+                    onChange={(e) => setFormData({...formData, vehicle_type: e.target.value})}
+                    disabled={isSubmitting}
+                  />
+                  <div className={`px-md py-xs rounded-md border transition-all ${
+                    formData.vehicle_type === type 
+                      ? 'bg-primary text-white border-primary shadow-sm' 
+                      : 'bg-surface text-secondary border-border hover:border-primary-light'
+                  }`} style={{ fontSize: '14px', fontWeight: 500 }}>
+                    {type}
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -140,7 +154,7 @@ export default function VehicleForm() {
         isSubmitting={isSubmitting}
         details={{
           'Vehicle Name': formData.vehicle_name,
-          'Vehicle Type': formData.vehicle_type || '(None)',
+          'Vehicle Type': formData.vehicle_type || '(Not selected)',
           'Truck Plate': formData.truck_plate || '(None)',
           'Trailer Plate': formData.trailer_plate || '(None)'
         }}
