@@ -94,6 +94,7 @@ export default function Dashboard() {
     if (loading) return null;
 
     const safeGet = (record, search) => {
+      if (!record) return null;
       const keys = Object.keys(record);
       const key = findKey(keys, search);
       return key ? record[key] : null;
@@ -124,6 +125,7 @@ export default function Dashboard() {
     // --- 0. Range Filtering ---
     const inRange = (d) => {
       if (!d) return false;
+      if (rangeType === 'all' || !dateRange) return true; // All-time includes everything with a valid date
       return d >= dateRange.start && d <= dateRange.end;
     };
 
@@ -139,7 +141,7 @@ export default function Dashboard() {
     const silicaLostInPeriod = purchasedInPeriod - deliveredInPeriod;
 
     // --- 1.2 Customer-Specific KPI Progress ---
-    const targetMonthStr = rangeType === 'month' ? dateRange.start.substring(0, 7) : currentMonthStr;
+    const targetMonthStr = (rangeType === 'month' && dateRange) ? dateRange.start.substring(0, 7) : currentMonthStr;
     const periodPlans = (plans || []).filter(p => (safeGet(p, 'month') || '').startsWith(targetMonthStr));
     
     // Group deliveries in period by customer
@@ -153,21 +155,28 @@ export default function Dashboard() {
     }, {});
 
     // Map plans to progress
-    const customerPerformance = periodPlans.map(plan => {
-      const custId = Array.isArray(plan.customer) ? plan.customer[0] : plan.customer;
-      const delivered = deliveriesByCustomer[custId] || 0;
-      const target = parseFloat(safeGet(plan, 'planned_tons')) || 0;
-      const progress = target > 0 ? (delivered / target) * 100 : 0;
-      
-      return {
-        id: custId,
-        name: getMasterName(custId, customers),
-        delivered: delivered.toFixed(1),
-        target: target.toFixed(0),
-        progress: progress.toFixed(1),
-        progressNum: progress
-      };
-    }).sort((a, b) => b.progressNum - a.progressNum);
+    const customerPerformance = (periodPlans || []).map(plan => {
+      try {
+        const custId = Array.isArray(plan?.customer) ? plan.customer[0] : (plan?.customer || null);
+        if (!custId) return null;
+        
+        const delivered = deliveriesByCustomer[custId] || 0;
+        const target = parseFloat(safeGet(plan, 'planned_tons')) || 0;
+        const progress = target > 0 ? (delivered / target) * 100 : 0;
+        
+        return {
+          id: custId,
+          name: getMasterName(custId, customers),
+          delivered: delivered.toFixed(1),
+          target: target.toFixed(0),
+          progress: progress.toFixed(1),
+          progressNum: progress
+        };
+      } catch (err) {
+        console.warn("Error processing customer plan:", err);
+        return null;
+      }
+    }).filter(p => p !== null).sort((a, b) => b.progressNum - a.progressNum);
 
     // Global Monthly KPI is now the sum of all plans for that month
     const monthlyKPI = periodPlans.reduce((sum, p) => sum + (parseFloat(safeGet(p, 'planned_tons')) || 0), 0) || 4000;
@@ -201,8 +210,9 @@ export default function Dashboard() {
     // --- 3. Previous Period Performance ---
     let prevPeriodData = { name: 'Previous Period', target: '4000', delivered: '0.0', progress: '0.0' };
     try {
-      const start = new Date(dateRange.start);
-      const end = new Date(dateRange.end);
+      if (dateRange && dateRange.start && dateRange.end) {
+        const start = new Date(dateRange.start);
+        const end = new Date(dateRange.end);
       if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
         const diff = end.getTime() - start.getTime();
         const prevEnd = new Date(start.getTime() - 86400000); 
@@ -228,9 +238,10 @@ export default function Dashboard() {
           progress: prevProgressValue.toFixed(1)
         };
       }
-    } catch (e) {
-      console.warn("Error calculating previous period:", e);
     }
+  } catch (e) {
+    console.warn("Error calculating previous period:", e);
+  }
     const yearMonths = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -285,22 +296,22 @@ export default function Dashboard() {
 
     return {
       kpis: {
-        purchased: purchasedInPeriod.toFixed(1),
-        delivered: deliveredInPeriod.toFixed(1),
-        fuel: fuelUsedInPeriod.toFixed(0),
-        progress: deliveryProgress.toFixed(1),
-        loss: silicaLostInPeriod.toFixed(1)
+        purchased: (purchasedInPeriod || 0).toFixed(1),
+        delivered: (deliveredInPeriod || 0).toFixed(1),
+        fuel: (fuelUsedInPeriod || 0).toFixed(0),
+        progress: (deliveryProgress || 0).toFixed(1),
+        loss: (silicaLostInPeriod || 0).toFixed(1)
       },
-      lossTrendData,
-      purchaseTrendData,
-      topCustomers,
-      fuelComparisonData,
-      vehicleFuel,
-      truckProductivity,
-      prevPeriod: prevPeriodData,
+      lossTrendData: lossTrendData || [],
+      purchaseTrendData: purchaseTrendData || [],
+      topCustomers: topCustomers || [],
+      fuelComparisonData: fuelComparisonData || [],
+      vehicleFuel: vehicleFuel || [],
+      truckProductivity: truckProductivity || [],
+      prevPeriod: prevPeriodData || { name: 'Previous', target: '0', delivered: '0.0', progress: '0.0' },
       efficiency: {
-        yield: (silicaYieldTotal * 100).toFixed(1),
-        fuelEff: fuelEfficiencyTotal.toFixed(2)
+        yield: ((silicaYieldTotal || 0) * 100).toFixed(1),
+        fuelEff: (fuelEfficiencyTotal || 0).toFixed(2)
       },
       monthlyKPI,
       customerPerformance
