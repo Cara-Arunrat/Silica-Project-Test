@@ -50,11 +50,15 @@ export const findKey = (keys, searchKey) => {
 const normalizeFields = (inputFields, existingData, tableName) => {
   const existingKeys = existingData.length > 0 
     ? Array.from(new Set(existingData.flatMap(item => Object.keys(item))))
+        .filter(k => !k.startsWith('_'))
     : [];
   
   const finalFields = {};
   console.log(`[Airtable Sync] ${tableName} existing columns:`, existingKeys);
   Object.keys(inputFields).forEach(key => {
+    // Never send internal fields (starting with underscore) to Airtable
+    if (key.startsWith('_')) return;
+
     const matchingKey = findKey(existingKeys, key);
     if (matchingKey) {
       finalFields[matchingKey] = inputFields[key];
@@ -77,18 +81,18 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'meter_start': 'Meter Start',
         'meter_end': 'Meter End',
         'fuel_used': 'Fuel Used',
-        'created_at': 'Created At',
-        'created_by': 'Created By'
+        'created_by': 'created_by'
       };
       
       if (common[lowerKey]) {
         finalFields[common[lowerKey]] = inputFields[key];
       } else {
-        const guessed = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        finalFields[guessed] = inputFields[key];
+        // Ultimate fallback: if no match found, keep the exact key from intake.
+        finalFields[key] = inputFields[key];
       }
     }
   });
+  console.log(`[Airtable Sync] ${tableName} Normalized Payload:`, finalFields);
   return finalFields;
 };
 
@@ -278,7 +282,6 @@ export const useTransactions = (tableName) => {
 
   const addRecord = async (inputFields) => {
     const metadata = {
-      created_at: new Date().toISOString(),
       created_by: user?.username || user?.id
     };
     const createdByName = user?.username || user?.id || '';
