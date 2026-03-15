@@ -333,9 +333,9 @@ export default function Dashboard() {
 
   const getProgressColor = (percent) => {
     const p = parseFloat(percent);
-    if (p < 50) return { text: 'text-warning', bg: 'bg-warning' };
-    if (p < 80) return { text: 'text-success', bg: 'bg-success' };
-    return { text: 'text-primary', bg: 'bg-primary' };
+    if (p < 50) return { text: 'text-orange', bg: 'bg-orange' };
+    if (p < 80) return { text: 'text-primary', bg: 'bg-primary' };
+    return { text: 'text-success', bg: 'bg-success' };
   };
 
   return (
@@ -449,9 +449,42 @@ export default function Dashboard() {
         <div className="lg:col-span-2 card">
           <div className="flex justify-between items-center mb-md">
             <h3 className="text-xl font-bold">Partner Delivery Progress</h3>
-            <span className="text-xs font-bold text-secondary uppercase bg-bg px-sm py-xs rounded">
-              KPI Target: {monthlyKPI.toLocaleString()} tons
-            </span>
+          </div>
+
+          <div className="mb-lg p-lg bg-surface rounded-xl border-2 border-primary/20 shadow-md">
+            <div className="flex justify-between items-center mb-md">
+              <div className="flex items-center gap-sm">
+                <div className="p-xs bg-primary-light rounded-lg text-primary">
+                  <TrendingUp size={20} />
+                </div>
+                <h4 className="text-xl font-bold tracking-tight text-primary">Summary</h4>
+              </div>
+              <div className="text-4xl font-black text-primary tracking-tighter">
+                {kpis.progress}<span className="text-lg ml-[2px]">%</span>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-md mb-md">
+              <div>
+                <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Total Achieved</p>
+                <p className="text-xl font-bold text-primary">{kpis.delivered}<span className="text-xs ml-xs font-normal"> tons</span></p>
+              </div>
+              <div>
+                <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Overall Target</p>
+                <p className="text-xl font-bold">{monthlyKPI.toLocaleString()}<span className="text-xs ml-xs font-normal"> tons</span></p>
+              </div>
+              <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20">
+                <p className="text-[8px] font-black uppercase tracking-widest">Growth Insight</p>
+                <p className="text-xs font-bold leading-tight">Tracking {customerPerformance.length} Partners</p>
+              </div>
+            </div>
+            
+            <div className="h-4 bg-bg rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+              <div 
+                className="h-full rounded-full bg-primary shadow-sm transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min(parseFloat(kpis.progress), 100)}%` }}
+              ></div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 gap-lg">
@@ -474,15 +507,15 @@ export default function Dashboard() {
                     <div className="grid grid-cols-3 gap-md mb-md py-md border-y border-white/10">
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
-                        <p className="text-lg font-bold text-primary">{cp.delivered}<span className="text-[10px] ml-xs font-normal">t</span></p>
+                        <p className="text-lg font-bold text-primary">{cp.delivered}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
                       </div>
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
-                        <p className={`text-lg font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{remaining}<span className="text-[10px] ml-xs font-normal">t</span></p>
+                        <p className={`text-lg font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{remaining}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
                       </div>
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Target</p>
-                        <p className="text-lg font-bold">{cp.target}<span className="text-[10px] ml-xs font-normal">t</span></p>
+                        <p className="text-lg font-bold">{cp.target}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
                       </div>
                     </div>
                     
@@ -502,28 +535,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-md mt-xl">
-             <div>
-               <h4 className="text-sm font-bold text-secondary mb-md border-b border-border pb-xs uppercase">Aggregate Summary</h4>
-               <div className="flex items-center gap-lg">
-                 <div className="flex flex-col">
-                    <span className="text-xs text-secondary font-medium">Total Progress</span>
-                    <span className="text-xl font-bold">{kpis.progress}%</span>
-                 </div>
-                 <div className="flex-1 text-xs text-secondary">
-                   <p>Target: {monthlyKPI.toLocaleString()} tons</p>
-                   <p>Delivered: {kpis.delivered} tons</p>
-                 </div>
-               </div>
-             </div>
-             <div className="bg-success-light text-success p-sm px-md rounded-xl flex items-center gap-sm">
-               <TrendingUp size={24} />
-               <div>
-                  <p className="text-[10px] font-bold uppercase">Growth Insight</p>
-                  <p className="text-sm font-medium">Tracking {customerPerformance.length} key partners</p>
-               </div>
-             </div>
-          </div>
         </div>
 
         {/* SECTION 8: FUEL USAGE BY VEHICLE */}
