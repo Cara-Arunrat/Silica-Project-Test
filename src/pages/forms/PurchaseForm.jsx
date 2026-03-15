@@ -231,8 +231,9 @@ export default function PurchaseForm() {
 
           <div className="p-md space-y-md">
             {rows.map((row, index) => (
-              <div key={row.tempId} className={`flex flex-col sm:flex-row items-stretch gap-md p-md rounded-xl border transition-all duration-300 ${isSubmitting ? 'opacity-50' : 'hover:border-primary-light hover:shadow-md'} bg-surface`} style={{ borderColor: 'var(--border-color)' }}>
-                <div className="hidden sm:flex flex-none items-end pb-[3px]">
+              <div key={row.tempId} className={`flex flex-col sm:flex-row items-end gap-md p-md rounded-xl border transition-all duration-300 ${isSubmitting ? 'opacity-50' : 'hover:border-primary-light hover:shadow-md'} bg-surface`} style={{ borderColor: 'var(--border-color)' }}>
+                {/* Index / Numbering - Centered with input (38px height) */}
+                <div className="hidden sm:flex flex-none items-center justify-center h-[38px]">
                   <span className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-xs font-bold text-secondary shadow-sm">
                     {index + 1}
                   </span>
@@ -275,7 +276,8 @@ export default function PurchaseForm() {
                   </div>
                 </div>
 
-                <div className="flex items-end pb-[3px]">
+                {/* Trash Icon - Centered with input (38px height) */}
+                <div className="flex items-center justify-center h-[38px]">
                   {rows.length > 1 && (
                     <button 
                       type="button" 
