@@ -238,40 +238,39 @@ export default function PurchaseForm() {
                   </span>
                 </div>
                 
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-md">
-                  <div className="form-group mb-0 md:col-span-3">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary">Tons (Required)</label>
-                    <div className="relative">
-                       <input 
-                        type="number" 
-                        step="0.01"
-                        className="form-control pr-xl font-bold text-lg" 
-                        placeholder="0.00"
-                        value={row.tons_purchase}
-                        onChange={(e) => updateRow(row.tempId, 'tons_purchase', e.target.value)}
-                        required
-                        disabled={isSubmitting}
-                      />
-                      <span className="absolute right-md top-1/2 -translate-y-1/2 text-secondary text-xs font-medium">tons</span>
-                    </div>
+                <div className="flex-1 purchase-row-entry">
+                  <div className="form-group mb-0 col-tons">
+                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Tons</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="form-control font-medium text-sm" 
+                      placeholder="0.00"
+                      value={row.tons_purchase}
+                      onChange={(e) => updateRow(row.tempId, 'tons_purchase', e.target.value)}
+                      required
+                      disabled={isSubmitting}
+                      style={{ height: '38px' }}
+                    />
                   </div>
 
-                  <div className="form-group mb-0 md:col-span-3">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary">Total Cost (Auto)</label>
-                    <div className="form-control bg-bg-light flex items-center text-primary font-black border-dashed border-primary-light border-2">
+                  <div className="form-group mb-0 col-cost">
+                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Total Cost</label>
+                    <div className="form-control bg-bg-light flex items-center font-bold text-sm text-primary border-dashed" style={{ height: '38px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
                        ฿ {row.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </div>
                   </div>
 
-                  <div className="form-group mb-0 md:col-span-6">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary">Notes (Optional)</label>
+                  <div className="form-group mb-0 col-notes">
+                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Notes</label>
                     <input 
                       type="text"
-                      className="form-control" 
-                      placeholder="e.g. Quality check pass, Lot #402..."
+                      className="form-control text-sm" 
+                      placeholder="Optional notes..."
                       value={row.notes}
                       onChange={(e) => updateRow(row.tempId, 'notes', e.target.value)}
                       disabled={isSubmitting}
+                      style={{ height: '38px' }}
                     />
                   </div>
                 </div>
@@ -375,6 +374,20 @@ export default function PurchaseForm() {
         .badge { display: inline-flex; items-center; }
         .form-control.bg-bg { border-style: solid; }
         .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
+        
+        .purchase-row-entry {
+          display: flex;
+          gap: 12px;
+          align-items: flex-end;
+          width: 100%;
+        }
+        .col-tons { flex: 0 0 110px; }
+        .col-cost { flex: 0 0 160px; }
+        .col-notes { flex: 1; min-width: 0; }
+        @media (max-width: 640px) {
+          .purchase-row-entry { flex-direction: column; align-items: stretch; }
+          .col-tons, .col-cost { flex: 1; }
+        }
       `}</style>
     </div>
   );
