@@ -85,7 +85,9 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'vehicle_name': 'vehicle_name',
         'vehicle_type': 'vehicle_type',
         'truck_plate': 'truck_plate',
-        'trailer_plate': 'trailer_plate'
+        'trailer_plate': 'trailer_plate',
+        'purchase_date': 'purchase_date',
+        'fuel_liters': 'fuel_liters'
       };
       
       if (common[lowerKey]) {

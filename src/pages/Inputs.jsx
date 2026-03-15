@@ -9,6 +9,7 @@ import MasterDataSelect from '../components/MasterDataSelect';
 import PurchaseForm from './forms/PurchaseForm';
 import DeliveryForm from './forms/DeliveryForm';
 import GasolineForm from './forms/GasolineForm';
+import GasolinePurchaseForm from './forms/GasolinePurchaseForm';
 import ProductionForm from './forms/ProductionForm';
 import MonthlyPlanForm from './forms/MonthlyPlanForm';
 import VehicleForm from './forms/VehicleForm';
@@ -24,6 +25,7 @@ export default function Inputs() {
   const tabs = [
     { id: 'purchase', label: 'Purchases' },
     { id: 'delivery', label: 'Deliveries' },
+    { id: 'gas_purchase', label: 'Gasoline Purchase' },
     { id: 'gasoline', label: 'Gasoline Usage' },
     { id: 'production', label: 'Production Logs' },
     { id: 'plan', label: 'Monthly Plans' },
@@ -55,6 +57,7 @@ export default function Inputs() {
         <div className="p-xl">
           {activeTab === 'purchase' && <PurchaseForm />}
           {activeTab === 'delivery' && <DeliveryForm />}
+          {activeTab === 'gas_purchase' && <GasolinePurchaseForm />}
           {activeTab === 'gasoline' && <GasolineForm />}
           {activeTab === 'production' && <ProductionForm />}
           {activeTab === 'plan' && <MonthlyPlanForm />}
