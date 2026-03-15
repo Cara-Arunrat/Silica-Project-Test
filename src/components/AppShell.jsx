@@ -23,11 +23,11 @@ const SidebarLink = ({ to, icon: Icon, label }) => {
   );
 };
 
-const Navigation = () => {
+const Navigation = ({ isMobileOpen }) => {
   const { user, logout } = useAuth();
   
   return (
-    <nav className="sidebar">
+    <nav className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
         <h1 className="logo">SilicaOps</h1>
       </div>
@@ -61,12 +61,35 @@ const Navigation = () => {
 };
 
 export default function AppShell() {
+  const [isMobileOpen, setIsMobileOpen] = React.useState(false);
+  const location = useLocation();
+
+  // Close sidebar when navigating on mobile
+  React.useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location]);
+
   return (
     <div className="app-layout">
-      <Navigation />
+      {/* Overlay for mobile */}
+      {isMobileOpen && (
+        <div 
+          className="mobile-overlay" 
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+      
+      <Navigation isMobileOpen={isMobileOpen} />
+
       <main className="main-content">
         <header className="top-header">
-          {/* Contextual actions or breadcrumbs can go here */}
+          <button 
+            className="mobile-toggle" 
+            onClick={() => setIsMobileOpen(true)}
+          >
+            <Home size={20} />
+          </button>
+          
           <div className="header-breadcrumbs">
              <span className="text-secondary">Silica Operations Dashboard</span>
           </div>

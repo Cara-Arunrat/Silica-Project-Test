@@ -466,7 +466,7 @@ export default function Dashboard() {
       </div>
 
       {/* SECTION 1: EXECUTIVE SUMMARY */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-md mb-xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-md lg:gap-lg mb-xl">
         <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" icon={Mountain} colorClass="text-primary" trend={trends.purchased} />
         <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" icon={Truck} colorClass="text-success" trend={trends.delivered} />
         <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" icon={TrendingDown} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} trend={trends.loss} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
@@ -494,23 +494,23 @@ export default function Dashboard() {
         {/* SECTION 10: OPERATIONAL EFFICIENCY */}
         <div className="card">
           <h3 className="text-lg font-bold mb-lg">Efficiency Analytics (In Range)</h3>
-          <div className="grid grid-cols-2 gap-md h-[300px]">
-            <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border">
-               <div className="p-sm bg-primary-light rounded-full mb-md text-primary">
-                 <TrendingUp size={32} />
-               </div>
-               <p className="text-secondary text-xs uppercase font-bold tracking-widest mb-xs">Silica Yield</p>
-               <h4 className="text-3xl font-black text-primary">{efficiency.yield}%</h4>
-               <p className="text-[10px] text-secondary mt-sm">Total Delivery / Raw Purchase</p>
-            </div>
-            <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border">
-               <div className="p-sm bg-warning-light rounded-full mb-md text-warning">
-                 <Droplets size={32} />
-               </div>
-               <p className="text-secondary text-xs uppercase font-bold tracking-widest mb-xs">Fuel Efficiency</p>
-               <h4 className="text-3xl font-black text-warning">{efficiency.fuelEff}</h4>
-               <p className="text-[10px] text-secondary mt-sm">Liters / Delivered Ton</p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-md md:h-[300px]">
+             <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border min-h-[140px]">
+                <div className="p-sm bg-primary-light rounded-full mb-md text-primary">
+                  <TrendingUp size={32} />
+                </div>
+                <p className="text-secondary text-xs uppercase font-bold tracking-widest mb-xs">Silica Yield</p>
+                <h4 className="text-3xl font-black text-primary">{efficiency.yield}%</h4>
+                <p className="text-[10px] text-secondary mt-sm">Total Delivery / Raw Purchase</p>
+             </div>
+             <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border min-h-[140px]">
+                <div className="p-sm bg-warning-light rounded-full mb-md text-warning">
+                  <Droplets size={32} />
+                </div>
+                <p className="text-secondary text-xs uppercase font-bold tracking-widest mb-xs">Fuel Efficiency</p>
+                <h4 className="text-3xl font-black text-warning">{efficiency.fuelEff}</h4>
+                <p className="text-[10px] text-secondary mt-sm">Liters / Delivered Ton</p>
+             </div>
           </div>
         </div>
       </div>
@@ -541,7 +541,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-md mb-md">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-md">
                     <div>
                       <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Total Achieved</p>
                       <p className={`text-xl font-bold ${summaryColors.text}`}>{kpis.delivered}<span className="text-xs ml-xs font-normal"> tons</span></p>
@@ -551,7 +551,7 @@ export default function Dashboard() {
                       <p className="text-xl font-bold">{monthlyKPI.toLocaleString()}<span className="text-xs ml-xs font-normal"> tons</span></p>
                     </div>
                     {/* Fixed Success Colors for Insight Badge */}
-                    <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20">
+                    <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20 sm:h-fit sm:mt-auto">
                       <p className="text-[8px] font-black uppercase tracking-widest">Growth Insight</p>
                       <p className="text-xs font-bold leading-tight">Tracking {customerPerformance.length} Partners</p>
                     </div>
@@ -586,7 +586,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-md mb-md py-md border-y border-white/10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-md py-md border-y border-white/10">
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
                         {/* Metric Value - Dynamic based on progress */}
