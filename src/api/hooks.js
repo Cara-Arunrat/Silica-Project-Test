@@ -152,8 +152,9 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
     try {
       const metadata = {
         active: true,
-        created_at: new Date().toISOString(),
-        created_by: user?.username || user?.id
+        created_at: new Date().toISOString()
+        // removed created_by from here to avoid system field conflicts; 
+        // form components can pass it explicitly if they have a dedicated text field for it.
       };
       const payload = normalizeFields({ ...fields, ...metadata }, data, tableName);
       console.log(`[Airtable Add Master] ${tableName} Final Payload:`, JSON.stringify(payload, null, 2));

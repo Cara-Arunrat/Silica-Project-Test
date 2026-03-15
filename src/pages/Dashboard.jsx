@@ -50,13 +50,44 @@ export default function Dashboard() {
 
   const loading = loadingPurchases || loadingDeliveries || loadingGas || loadingGasPurch || loadingPlans;
 
+  const [rangeType, setRangeType] = useState('month');
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const dLast = new Date(y, today.getMonth() + 1, 0).getDate();
+    return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(dLast).padStart(2, '0')}` };
+  });
+
+  const handleRangeChange = (type) => {
+    setRangeType(type);
+    const today = new Date();
+    const y = today.getFullYear();
+
+    if (type === 'month') {
+      const m = String(today.getMonth() + 1).padStart(2, '0');
+      const dLast = new Date(y, today.getMonth() + 1, 0).getDate();
+      setDateRange({ start: `${y}-${m}-01`, end: `${y}-${m}-${String(dLast).padStart(2, '0')}` });
+    } else if (type === 'year') {
+      setDateRange({ start: `${y}-01-01`, end: `${y}-12-31` });
+    } else if (type === '2025') {
+      setDateRange({ start: '2025-01-01', end: '2025-12-31' });
+    } else if (type === 'all') {
+      setDateRange({ start: '2020-01-01', end: '2030-12-31' }); // Sufficiently broad
+    }
+    // 'custom' keeps existing range for user to adjust
+  };
+
   // Helper for name resolution
   const getMasterName = (id, list) => {
     if (!id || !list || !Array.isArray(list)) return '-';
     // Airtable linked records are often arrays
     const targetId = Array.isArray(id) ? id[0] : id;
     const match = list.find(item => item._id === targetId || item.id === targetId);
-    return match ? (match.name || match.Name || match.username || match.text || 'Unknown') : targetId;
+    if (!match) return targetId;
+    return match.name || match.Name || match.username || match.text || 
+           match[Object.keys(match).find(k => k.toLowerCase().includes('name'))] || 
+           match[Object.keys(match).find(k => k.toLowerCase().includes('label'))] || targetId;
   };
 
   const dashboardData = useMemo(() => {
@@ -76,32 +107,49 @@ export default function Dashboard() {
     };
 
     const getDate = (record) => {
-      return safeGet(record, 'date') || safeGet(record, 'month') || safeGet(record, 'purchase_date') || safeGet(record, 'delivery_date') || record._createdTime;
+      const d = safeGet(record, 'date') || safeGet(record, 'month') || safeGet(record, 'purchase_date') || safeGet(record, 'delivery_date') || record?._createdTime;
+      if (!d) return null;
+      try {
+        const dt = new Date(d);
+        if (isNaN(dt.getTime())) return null;
+        return dt.toISOString().split('T')[0];
+      } catch (e) {
+        return null;
+      }
     };
 
     const today = new Date();
-    const currentMonthStr = today.toISOString().substring(0, 7); // YYYY-MM
+    const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM local
     
-    // --- 1. MTD KPI Metrics ---
-    const mtdPurchases = (purchases || []).filter(p => (getDate(p) || '').startsWith(currentMonthStr));
-    const mtdDeliveries = (deliveries || []).filter(d => (getDate(d) || '').startsWith(currentMonthStr));
-    const mtdGas = (gasoline || []).filter(g => (getDate(g) || '').startsWith(currentMonthStr));
-    
-    const purchasedMTD = mtdPurchases.reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0);
-    const deliveredMTD = mtdDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
-    const fuelUsedMTD = mtdGas.reduce((sum, item) => sum + (parseFloat(safeGet(item, 'fuel_used_liters')) || 0), 0);
-    
-    const currentPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(currentMonthStr));
-    const monthlyKPI = currentPlan ? (parseFloat(safeGet(currentPlan, 'planned_tons')) || 4000) : 4000;
-    const deliveryProgress = monthlyKPI > 0 ? (deliveredMTD / monthlyKPI) * 100 : 0;
-    
-    const silicaLostMTD = purchasedMTD - deliveredMTD;
+    // --- 0. Range Filtering ---
+    const inRange = (d) => {
+      if (!d) return false;
+      return d >= dateRange.start && d <= dateRange.end;
+    };
 
-    // --- 2. Silica Loss Trend (Last 4 Months) ---
+    const fPurchases = (purchases || []).filter(p => inRange(getDate(p)));
+    const fDeliveries = (deliveries || []).filter(d => inRange(getDate(d)));
+    const fGasoline = (gasoline || []).filter(g => inRange(getDate(g)));
+
+    // --- 1. Range KPI Metrics ---
+    const purchasedInPeriod = fPurchases.reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0);
+    const deliveredInPeriod = fDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
+    const fuelUsedInPeriod = fGasoline.reduce((sum, item) => sum + (parseFloat(safeGet(item, 'fuel_used_liters')) || 0), 0);
+    
+    // Monthly Progress always uses current month context for KPI comparison unless in specific month
+    const targetMonthStr = rangeType === 'month' ? dateRange.start.substring(0, 7) : currentMonthStr;
+    const currentPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(targetMonthStr));
+    const monthlyKPI = currentPlan ? (parseFloat(safeGet(currentPlan, 'planned_tons')) || 4000) : 4000;
+    const deliveryProgress = monthlyKPI > 0 ? (deliveredInPeriod / monthlyKPI) * 100 : 0;
+    
+    const silicaLostInPeriod = purchasedInPeriod - deliveredInPeriod;
+
+    // --- 2. Silica Loss Trend (Fixed Context - Last 4 Months) ---
     const months = [];
     for (let i = 3; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      months.push(d.toISOString().substring(0, 7));
+      const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      months.push(mStr);
     }
 
     const lossTrendData = months.map(m => {
@@ -121,21 +169,44 @@ export default function Dashboard() {
       };
     });
 
-    // --- 3. Previous Month Performance ---
-    const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const prevMonthStr = prevMonthDate.toISOString().substring(0, 7);
-    const prevDeliveries = (deliveries || []).filter(d => (getDate(d) || '').startsWith(prevMonthStr));
-    const prevDeliveredTons = prevDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
-    const prevPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(prevMonthStr));
-    const prevKPI = prevPlan ? (parseFloat(safeGet(prevPlan, 'planned_tons')) || 4000) : 4000;
-    const prevProgress = prevKPI > 0 ? (prevDeliveredTons / prevKPI) * 100 : 0;
-    const prevMonthName = prevMonthDate.toLocaleString('default', { month: 'long' });
+    // --- 3. Previous Period Performance ---
+    let prevPeriodData = { name: 'Previous Period', target: '4000', delivered: '0.0', progress: '0.0' };
+    try {
+      const start = new Date(dateRange.start);
+      const end = new Date(dateRange.end);
+      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+        const diff = end.getTime() - start.getTime();
+        const prevEnd = new Date(start.getTime() - 86400000); 
+        const prevStart = new Date(prevEnd.getTime() - diff);
+        const ps = prevStart.toISOString().split('T')[0];
+        const pe = prevEnd.toISOString().split('T')[0];
+        
+        const prevDeliveries = (deliveries || []).filter(d => {
+          const dt = getDate(d);
+          return dt && dt >= ps && dt <= pe;
+        });
+        const prevDeliveredTons = prevDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
+        const prevPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(ps.substring(0, 7)));
+        const prevKPI = prevPlan ? (parseFloat(safeGet(prevPlan, 'planned_tons')) || 4000) : 4000;
+        const prevProgressValue = prevKPI > 0 ? (prevDeliveredTons / prevKPI) * 100 : 0;
+        const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const prevMonthName = prevMonthDate.toLocaleString('default', { month: 'long' });
 
-    // --- 4. Purchase Trend (12 Months) ---
+        prevPeriodData = {
+          name: rangeType === 'month' ? prevMonthName : 'Previous Period',
+          target: prevKPI.toFixed(0),
+          delivered: prevDeliveredTons.toFixed(1),
+          progress: prevProgressValue.toFixed(1)
+        };
+      }
+    } catch (e) {
+      console.warn("Error calculating previous period:", e);
+    }
     const yearMonths = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      yearMonths.push(d.toISOString().substring(0, 7));
+      const mStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      yearMonths.push(mStr);
     }
     const purchaseTrendData = yearMonths.map(m => ({
       month: m,
@@ -144,7 +215,7 @@ export default function Dashboard() {
     }));
 
     // --- 5. Deliveries by Customer (Top 5) ---
-    const customerTotals = (deliveries || []).reduce((acc, d) => {
+    const customerTotals = fDeliveries.reduce((acc, d) => {
       const cust = safeGet(d, 'customer');
       if (!cust) return acc;
       const id = Array.isArray(cust) ? cust[0] : cust;
@@ -167,7 +238,7 @@ export default function Dashboard() {
     });
 
     // --- 7. Fuel Usage by Vehicle ---
-    const vehicleFuelTotals = mtdGas.reduce((acc, g) => {
+    const vehicleFuelTotals = fGasoline.reduce((acc, g) => {
       const v = safeGet(g, 'vehicle');
       if (!v) return acc;
       const id = Array.isArray(v) ? v[0] : v;
@@ -178,8 +249,8 @@ export default function Dashboard() {
       .map(([id, liters]) => ({ name: getMasterName(id, vehicles), liters: parseFloat(liters.toFixed(1)) }))
       .sort((a, b) => b.liters - a.liters);
 
-    // --- 8. Truck Productivity (Tons Delivered MTD) ---
-    const truckProductivityTotals = mtdDeliveries.reduce((acc, d) => {
+    // --- 8. Truck Productivity (Tons Delivered) ---
+    const truckProductivityTotals = fDeliveries.reduce((acc, d) => {
       const v = safeGet(d, 'vehicle');
       if (!v) return acc;
       const id = Array.isArray(v) ? v[0] : v;
@@ -191,16 +262,16 @@ export default function Dashboard() {
       .sort((a, b) => b.tons - a.tons);
 
     // --- 9. Efficiency Metrics ---
-    const silicaYieldTotal = purchasedMTD > 0 ? (deliveredMTD / purchasedMTD) : 0;
-    const fuelEfficiencyTotal = deliveredMTD > 0 ? (fuelUsedMTD / deliveredMTD) : 0;
+    const silicaYieldTotal = purchasedInPeriod > 0 ? (deliveredInPeriod / purchasedInPeriod) : 0;
+    const fuelEfficiencyTotal = deliveredInPeriod > 0 ? (fuelUsedInPeriod / deliveredInPeriod) : 0;
 
     return {
       kpis: {
-        purchased: purchasedMTD.toFixed(1),
-        delivered: deliveredMTD.toFixed(1),
-        fuel: fuelUsedMTD.toFixed(0),
+        purchased: purchasedInPeriod.toFixed(1),
+        delivered: deliveredInPeriod.toFixed(1),
+        fuel: fuelUsedInPeriod.toFixed(0),
         progress: deliveryProgress.toFixed(1),
-        loss: silicaLostMTD.toFixed(1)
+        loss: silicaLostInPeriod.toFixed(1)
       },
       lossTrendData,
       purchaseTrendData,
@@ -208,21 +279,16 @@ export default function Dashboard() {
       fuelComparisonData,
       vehicleFuel,
       truckProductivity,
-      prevMonth: {
-        name: prevMonthName,
-        target: prevKPI.toFixed(0),
-        delivered: prevDeliveredTons.toFixed(1),
-        progress: prevProgress.toFixed(1)
-      },
+      prevPeriod: prevPeriodData,
       efficiency: {
         yield: (silicaYieldTotal * 100).toFixed(1),
         fuelEff: fuelEfficiencyTotal.toFixed(2)
       },
       monthlyKPI
     };
-  }, [loading, purchases, deliveries, gasoline, gasPurchases, plans, customers, vehicles]);
+  }, [loading, purchases, deliveries, gasoline, gasPurchases, plans, customers, vehicles, dateRange, rangeType]);
 
-  if (loading) {
+  if (loading || !dashboardData) {
     return (
       <div className="flex flex-col items-center justify-center p-xl min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-md"></div>
@@ -231,31 +297,73 @@ export default function Dashboard() {
     );
   }
 
-  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, prevMonth, efficiency, monthlyKPI } = dashboardData;
+  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, prevPeriod, efficiency, monthlyKPI } = dashboardData;
 
   const getLossStatus = (val) => val > 30 ? 'warning' : 'optimal';
 
   return (
     <div className="dashboard-v2 pb-xl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-xl">
+      <div className="flex justify-between items-center mb-xl flex-wrap gap-md">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Silica Intelligence Dashboard</h1>
-          <p className="text-secondary mt-xs">Real-time operational visibility and efficiency metrics.</p>
+          <p className="text-secondary mt-xs">Operational visibility and efficiency metrics.</p>
         </div>
-        <div className="flex items-center gap-sm bg-surface p-xs px-sm rounded-lg border border-border">
-          <Calendar size={16} className="text-primary" />
-          <span className="text-sm font-medium">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+        
+        <div className="flex items-center gap-md flex-wrap">
+          <div className="form-group mb-0">
+            <select 
+              className="form-control" 
+              value={rangeType} 
+              onChange={(e) => handleRangeChange(e.target.value)}
+              style={{ padding: '8px 12px', minWidth: '160px', height: '42px' }}
+            >
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+              <option value="2025">Year 2025</option>
+              <option value="all">All-time</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {rangeType === 'custom' && (
+            <div className="card flex items-center gap-sm" style={{ padding: '4px 12px', margin: 0, border: '1px solid var(--border-color)', height: '42px' }}>
+              <input 
+                type="date" 
+                className="form-control text-xs" 
+                style={{ padding: '2px 4px', border: 'none', background: 'transparent', width: '120px' }}
+                value={dateRange.start}
+                onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
+              />
+              <span className="text-secondary">-</span>
+              <input 
+                type="date" 
+                className="form-control text-xs" 
+                style={{ padding: '2px 4px', border: 'none', background: 'transparent', width: '120px' }}
+                value={dateRange.end}
+                onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
+              />
+            </div>
+          )}
+
+          <div className="flex items-center gap-sm bg-surface p-xs px-md rounded-lg border border-border h-[42px]">
+            <Calendar size={16} className="text-primary" />
+            <span className="text-sm font-medium">
+              {rangeType === 'month' ? new Date().toLocaleString('default', { month: 'long', year: 'numeric' }) : 
+               rangeType === 'year' ? new Date().getFullYear() : 
+               rangeType === 'all' ? 'All Records' : 'Active Range'}
+            </span>
+          </div>
         </div>
       </div>
 
       {/* SECTION 1: EXECUTIVE SUMMARY */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-md mb-xl">
-        <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" subtitle="Purchased MTD" icon={Droplets} colorClass="text-primary" />
-        <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" subtitle="Delivered MTD" icon={PackageCheck} colorClass="text-success" />
-        <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" subtitle="Purchase - Delivery" icon={AlertTriangle} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} status={getLossStatus((parseFloat(kpis.loss) / parseFloat(kpis.purchased)) * 100)} />
-        <KPIButton title="Fuel Consumption" value={kpis.fuel} unit="liters" subtitle="Total Used MTD" icon={Activity} colorClass="text-warning" />
-        <KPIButton title="KPI Progress" value={kpis.progress} unit="%" subtitle="Of Monthly Target" icon={TrendingUp} colorClass="text-success" status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-md mb-xl">
+        <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" subtitle="In Range" icon={Droplets} colorClass="text-primary" />
+        <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" subtitle="In Range" icon={PackageCheck} colorClass="text-success" />
+        <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" subtitle="In Range" icon={AlertTriangle} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
+        <KPIButton title="Fuel Consumption" value={kpis.fuel} unit="liters" subtitle="In Range" icon={Activity} colorClass="text-warning" />
+        <KPIButton title="KPI Progress" value={kpis.progress} unit="%" subtitle="vs Monthly Plan" icon={TrendingUp} colorClass="text-success" status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-xl mb-xl">
@@ -264,7 +372,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-lg">
             <div>
               <h3 className="text-lg font-bold">Silica Loss Trend (%)</h3>
-              <p className="text-xs text-secondary">Historical loss monitoring (4 Months)</p>
+              <p className="text-xs text-secondary">Historical loss monitoring (Fixed 4 Mo)</p>
             </div>
             {parseFloat(lossTrendData[lossTrendData.length - 1]?.lossPercentage) > 30 && (
               <div className="flex items-center gap-xs text-warning text-xs font-bold uppercase animate-pulse">
@@ -277,7 +385,7 @@ export default function Dashboard() {
 
         {/* SECTION 10: OPERATIONAL EFFICIENCY */}
         <div className="card">
-          <h3 className="text-lg font-bold mb-lg">Efficiency Analytics</h3>
+          <h3 className="text-lg font-bold mb-lg">Efficiency Analytics (In Range)</h3>
           <div className="grid grid-cols-2 gap-md h-[300px]">
             <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border">
                <div className="p-sm bg-primary-light rounded-full mb-md text-primary">
@@ -305,15 +413,15 @@ export default function Dashboard() {
           <h3 className="text-lg font-bold mb-md">Delivery Performance vs Target</h3>
           
           <div className="mb-xl p-lg bg-bg rounded-xl border border-border">
-            <div className="flex justify-between items-end mb-sm">
+            <div className="flex justify-between items-end mb-sm text-sm">
               <div>
-                <p className="text-xs text-secondary font-bold uppercase">Current Month Progress</p>
-                <div className="flex items-baseline gap-xs mt-xs">
+                <p className="text-xs text-secondary font-bold uppercase mb-xs">Range Progress</p>
+                <div className="flex items-baseline gap-xs">
                   <span className="text-3xl font-black text-primary">{kpis.delivered} <span className="text-sm font-normal text-secondary">tons</span></span>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs text-secondary">Target: {monthlyKPI.toLocaleString()} tons</p>
+                <p className="text-xs text-secondary mb-xs">Plan Reference: {monthlyKPI.toLocaleString()} t</p>
                 <p className="text-2xl font-bold text-success">{kpis.progress}%</p>
               </div>
             </div>
@@ -327,19 +435,19 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
              <div>
-               <h4 className="text-sm font-bold text-secondary mb-md border-b border-border pb-xs uppercase">Previous Month Summary</h4>
+               <h4 className="text-sm font-bold text-secondary mb-md border-b border-border pb-xs uppercase">Comparison Summary</h4>
                <div className="flex items-center gap-lg">
                  <div className="flex flex-col">
-                    <span className="text-xs text-secondary">{prevMonth.name}</span>
-                    <span className="text-xl font-bold">{prevMonth.progress}%</span>
+                    <span className="text-xs text-secondary font-medium">{prevPeriod.name}</span>
+                    <span className="text-xl font-bold">{prevPeriod.progress}%</span>
                  </div>
                  <div className="flex-1 text-xs text-secondary">
-                   <p>Target: {prevMonth.target} tons</p>
-                   <p>Delivered: {prevMonth.delivered} tons</p>
+                   <p>Target: {prevPeriod.target} tons</p>
+                   <p>Delivered: {prevPeriod.delivered} tons</p>
                  </div>
                </div>
              </div>
-             <div className="bg-success-light text-success p-sm rounded-lg flex items-center gap-sm">
+             <div className="bg-success-light text-success p-sm px-md rounded-xl flex items-center gap-sm">
                <Truck size={24} />
                <div>
                   <p className="text-[10px] font-bold uppercase">Fleet Readiness</p>
@@ -351,8 +459,8 @@ export default function Dashboard() {
 
         {/* SECTION 8: FUEL USAGE BY VEHICLE */}
         <div className="card">
-          <h3 className="text-lg font-bold mb-md">Vehicle Fuel Consumption</h3>
-          <p className="text-xs text-secondary mb-lg">Liters consumed MTD</p>
+          <h3 className="text-lg font-bold mb-md">Vehicle Fuel Usage</h3>
+          <p className="text-xs text-secondary mb-lg">Liters consumed in selected range</p>
           <HorizontalMetricChart data={vehicleFuel} dataKey="liters" color="#fbbf24" unit=" L" />
         </div>
       </div>
@@ -361,14 +469,14 @@ export default function Dashboard() {
         {/* SECTION 5: PURCHASE TREND */}
         <div className="card">
           <h3 className="text-lg font-bold mb-md">Raw Material Purchase Trend</h3>
-          <p className="text-xs text-secondary mb-lg">Total tons purchased per month (12 Months)</p>
+          <p className="text-xs text-secondary mb-lg">Total tons purchased per month (Fixed 12 Mo)</p>
           <PurchaseTrendChart data={purchaseTrendData} />
         </div>
 
         {/* SECTION 7: FUEL PURCHASE VS USAGE */}
         <div className="card">
           <h3 className="text-lg font-bold mb-md">Fuel Balance Audit</h3>
-          <p className="text-xs text-secondary mb-lg">Purchase vs Usage comparison (MTD)</p>
+          <p className="text-xs text-secondary mb-lg">Historical Purchase vs Usage (Fixed context)</p>
           <FuelComparisonChart data={fuelComparisonData} />
         </div>
       </div>
@@ -377,14 +485,14 @@ export default function Dashboard() {
         {/* SECTION 6: DELIVERIES BY CUSTOMER */}
         <div className="card">
           <h3 className="text-lg font-bold mb-md">Top 5 Customers</h3>
-          <p className="text-xs text-secondary mb-lg">Delivered tons grouped by partner</p>
+          <p className="text-xs text-secondary mb-lg">Delivered tons in range</p>
           <HorizontalMetricChart data={topCustomers} dataKey="tons" color="var(--success-color)" unit=" t" />
         </div>
 
         {/* SECTION 9: TRUCK PRODUCTIVITY */}
         <div className="card">
           <h3 className="text-lg font-bold mb-md">Truck Utilization</h3>
-          <p className="text-xs text-secondary mb-lg">Total tons delivered per vehicle</p>
+          <p className="text-xs text-secondary mb-lg">Total tons delivered in range</p>
           <HorizontalMetricChart data={truckProductivity} dataKey="tons" color="var(--primary-color)" unit=" t" />
         </div>
       </div>
