@@ -88,10 +88,12 @@ export const FuelComparisonChart = ({ data }) => {
   );
 };
 
-/**
- * Productivity/Efficiency Bar Chart (Generic Horizontal Bar)
- */
-export const HorizontalMetricChart = ({ data, dataKey, color = "var(--primary-color)", unit = "" }) => {
+const CHART_PALETTE = [
+  '#2563eb', '#7c3aed', '#db2777', '#dc2626', '#ea580c', 
+  '#d97706', '#65a30d', '#16a34a', '#0891b2', '#4f46e5'
+];
+
+export const HorizontalMetricChart = ({ data, dataKey, color, unit = "" }) => {
   if (!data || data.length === 0) return <div className="text-secondary p-lg text-center">No data available.</div>;
 
   return (
@@ -109,7 +111,11 @@ export const HorizontalMetricChart = ({ data, dataKey, color = "var(--primary-co
             cursor={{ fill: 'var(--bg-color)' }}
             contentStyle={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px' }}
           />
-          <Bar dataKey={dataKey} fill={color} radius={[0, 4, 4, 0]} barSize={20} />
+          <Bar dataKey={dataKey} radius={[0, 4, 4, 0]} barSize={20}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

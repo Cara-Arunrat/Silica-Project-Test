@@ -3,7 +3,8 @@ import { useTransactions, findKey, useMasterData } from '../api/hooks';
 import { TABLE_NAMES } from '../api/airtable';
 import { 
   TrendingUp, Truck, PackageCheck, Droplets, 
-  AlertTriangle, Filter, Calendar, BarChart3, Activity 
+  AlertTriangle, Filter, Calendar, BarChart3, Activity,
+  Fuel, TrendingDown, Mountain
 } from 'lucide-react';
 import { 
   LossTrendChart, 
@@ -15,26 +16,62 @@ import {
 /**
  * KPI Card Component
  */
-const KPIButton = ({ title, value, unit, subtitle, icon: Icon, colorClass, trend, status }) => (
-  <div className="card flex flex-col gap-sm relative overflow-hidden">
-    <div className={`p-md rounded-lg mb-sm w-fit ${colorClass}`} style={{ backgroundColor: 'rgba(var(--primary-rgb), 0.1)' }}>
-      <Icon size={20} className={colorClass} />
-    </div>
-    <div>
-      <p className="text-secondary text-xs font-medium uppercase tracking-wider">{title}</p>
-      <div className="flex items-baseline gap-xs mt-xs">
-        <h3 className="text-2xl font-bold">{value}</h3>
-        <span className="text-secondary text-sm font-medium">{unit}</span>
+const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }) => {
+  const isPositive = trend && parseFloat(trend) > 0;
+  const isNegative = trend && parseFloat(trend) < 0;
+  const trendColor = isPositive ? 'text-success' : isNegative ? 'text-danger' : 'text-slate-400';
+  const trendArrow = isPositive ? '↑' : isNegative ? '↓' : '';
+
+  return (
+    <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" style={{ padding: '24px' }}>
+      {/* Status Badge - Balanced Refined Padding */}
+      {status && (
+        <div className={`absolute text-white uppercase tracking-widest font-black rounded-lg shadow-sm ${status === 'warning' ? 'bg-orange' : 'bg-success'}`} 
+             style={{ 
+               top: '15px', 
+               right: '15px',
+               fontSize: '13px',
+               padding: '6px 16px',
+               zIndex: 10
+             }}>
+          {status}
+        </div>
+      )}
+
+      <div className="flex flex-col h-full">
+        {/* Larger Square Icon Background */}
+        <div className="rounded-xl flex items-center justify-center transition-transform group-hover:rotate-3 duration-500 shadow-sm mb-lg" 
+             style={{ 
+               width: '54px', 
+               height: '54px', 
+               backgroundColor: 'rgba(var(--primary-rgb), 0.08)',
+               flexShrink: 0
+             }}>
+          <Icon size={24} className={colorClass} />
+        </div>
+        
+        {/* Lighter Gray Title - 13px & Unbolded */}
+        <p className="text-secondary opacity-70 uppercase tracking-widest mb-3" style={{ fontSize: '13px', fontWeight: 400 }}>{title}</p>
+        
+        <div className="flex items-baseline justify-between mt-auto" style={{ width: '100%' }}>
+          {/* Value and Unit (13px & Bottom Aligned) */}
+          <div style={{ display: 'flex', alignItems: 'baseline', whiteSpace: 'nowrap', gap: '8px' }}>
+            <span className="text-3xl font-black text-slate-900 tracking-tighter" style={{ lineHeight: 1 }}>{value}</span>
+            <span className="text-secondary" style={{ fontSize: '13px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
+          </div>
+          
+          {/* Trend - 13px, No Background */}
+          {trend !== undefined && (
+            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '13px' }}>
+              <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
+              <span style={{ lineHeight: 1 }}>{Math.abs(parseFloat(trend)).toFixed(0)}%</span>
+            </div>
+          )}
+        </div>
       </div>
-      {subtitle && <p className="text-xs text-secondary mt-xs">{subtitle}</p>}
     </div>
-    {status && (
-      <div className={`absolute top-0 right-0 p-xs px-sm text-[10px] font-bold uppercase ${status === 'warning' ? 'bg-warning text-warning-content' : 'bg-success text-success-content'}`}>
-        {status}
-      </div>
-    )}
-  </div>
-);
+  );
+};
 
 export default function Dashboard() {
   // Data Fetching
@@ -141,10 +178,37 @@ export default function Dashboard() {
     const silicaLostInPeriod = purchasedInPeriod - deliveredInPeriod;
 
     // --- 1.2 Customer-Specific KPI Progress ---
-    const targetMonthStr = (rangeType === 'month' && dateRange) ? dateRange.start.substring(0, 7) : currentMonthStr;
-    const periodPlans = (plans || []).filter(p => (safeGet(p, 'month') || '').startsWith(targetMonthStr));
+    // Extract months covered by the current range (YYYY-MM format)
+    const getMonthsInRange = (start, end) => {
+      const months = [];
+      let curr = new Date(start);
+      const last = new Date(end);
+      while (curr <= last) {
+        months.push(curr.toISOString().substring(0, 7));
+        curr.setMonth(curr.getMonth() + 1);
+      }
+      return months;
+    };
+
+    const activeRangeMonths = (dateRange && dateRange.start && dateRange.end) 
+      ? getMonthsInRange(dateRange.start, dateRange.end) 
+      : [currentMonthStr];
+
+    const periodPlans = (plans || []).filter(p => {
+      const m = safeGet(p, 'month') || '';
+      return activeRangeMonths.includes(m.substring(0, 7));
+    });
     
-    // Group deliveries in period by customer
+    // Group Targets by Customer (sum multiple months if range > 1 month)
+    const targetsByCustomer = periodPlans.reduce((acc, p) => {
+      const custId = Array.isArray(p?.customer) ? p.customer[0] : (p?.customer || null);
+      if (!custId) return acc;
+      const target = parseFloat(safeGet(p, 'planned_tons')) || 0;
+      acc[custId] = (acc[custId] || 0) + target;
+      return acc;
+    }, {});
+
+    // Group Deliveries by Customer
     const deliveriesByCustomer = fDeliveries.reduce((acc, d) => {
       const cust = safeGet(d, 'customer');
       if (!cust) return acc;
@@ -154,32 +218,24 @@ export default function Dashboard() {
       return acc;
     }, {});
 
-    // Map plans to progress
-    const customerPerformance = (periodPlans || []).map(plan => {
-      try {
-        const custId = Array.isArray(plan?.customer) ? plan.customer[0] : (plan?.customer || null);
-        if (!custId) return null;
-        
-        const delivered = deliveriesByCustomer[custId] || 0;
-        const target = parseFloat(safeGet(plan, 'planned_tons')) || 0;
-        const progress = target > 0 ? (delivered / target) * 100 : 0;
-        
-        return {
-          id: custId,
-          name: getMasterName(custId, customers),
-          delivered: delivered.toFixed(1),
-          target: target.toFixed(0),
-          progress: progress.toFixed(1),
-          progressNum: progress
-        };
-      } catch (err) {
-        console.warn("Error processing customer plan:", err);
-        return null;
-      }
-    }).filter(p => p !== null).sort((a, b) => b.progressNum - a.progressNum);
+    // Calculate Partner Performance using aggregated targets
+    const customerPerformance = Object.keys(targetsByCustomer).map(custId => {
+      const target = targetsByCustomer[custId] || 0;
+      const delivered = deliveriesByCustomer[custId] || 0;
+      const progress = target > 0 ? (delivered / target) * 100 : 0;
+      
+      return {
+        id: custId,
+        name: getMasterName(custId, customers),
+        delivered: delivered.toFixed(1),
+        target: target.toFixed(0),
+        progress: progress.toFixed(1),
+        progressNum: progress
+      };
+    }).sort((a, b) => b.progressNum - a.progressNum);
 
-    // Global Monthly KPI is now the sum of all plans for that month
-    const monthlyKPI = periodPlans.reduce((sum, p) => sum + (parseFloat(safeGet(p, 'planned_tons')) || 0), 0) || 4000;
+    // Global Aggregate KPI
+    const monthlyKPI = Object.values(targetsByCustomer).reduce((sum, t) => sum + t, 0) || 4000;
     const deliveryProgress = monthlyKPI > 0 ? (deliveredInPeriod / monthlyKPI) * 100 : 0;
 
     // --- 2. Silica Loss Trend (Fixed Context - Last 4 Months) ---
@@ -208,40 +264,55 @@ export default function Dashboard() {
     });
 
     // --- 3. Previous Period Performance ---
-    let prevPeriodData = { name: 'Previous Period', target: '4000', delivered: '0.0', progress: '0.0' };
+    let prevKPIs = { purchased: 0, delivered: 0, loss: 0, fuel: 0, progress: 0 };
     try {
       if (dateRange && dateRange.start && dateRange.end) {
         const start = new Date(dateRange.start);
         const end = new Date(dateRange.end);
-      if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-        const diff = end.getTime() - start.getTime();
-        const prevEnd = new Date(start.getTime() - 86400000); 
-        const prevStart = new Date(prevEnd.getTime() - diff);
-        const ps = prevStart.toISOString().split('T')[0];
-        const pe = prevEnd.toISOString().split('T')[0];
-        
-        const prevDeliveries = (deliveries || []).filter(d => {
-          const dt = getDate(d);
-          return dt && dt >= ps && dt <= pe;
-        });
-        const prevDeliveredTons = prevDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
-        const prevPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(ps.substring(0, 7)));
-        const prevKPI = prevPlan ? (parseFloat(safeGet(prevPlan, 'planned_tons')) || 4000) : 4000;
-        const prevProgressValue = prevKPI > 0 ? (prevDeliveredTons / prevKPI) * 100 : 0;
-        const prevMonthDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const prevMonthName = prevMonthDate.toLocaleString('default', { month: 'long' });
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          const diff = end.getTime() - start.getTime();
+          const prevEnd = new Date(start.getTime() - 86400000); 
+          const prevStart = new Date(prevEnd.getTime() - diff);
+          const ps = prevStart.toISOString().split('T')[0];
+          const pe = prevEnd.toISOString().split('T')[0];
+          
+          const inPrevRange = (d) => d && d >= ps && d <= pe;
 
-        prevPeriodData = {
-          name: rangeType === 'month' ? prevMonthName : 'Previous Period',
-          target: prevKPI.toFixed(0),
-          delivered: prevDeliveredTons.toFixed(1),
-          progress: prevProgressValue.toFixed(1)
-        };
+          const pPurchases = (purchases || []).filter(p => inPrevRange(getDate(p)));
+          const pDeliveries = (deliveries || []).filter(d => inPrevRange(getDate(d)));
+          const pGasoline = (gasoline || []).filter(g => inPrevRange(getDate(g)));
+
+          const pPurchasedTons = pPurchases.reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0);
+          const pDeliveredTons = pDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
+          const pFuelUsed = pGasoline.reduce((sum, item) => sum + (parseFloat(safeGet(item, 'fuel_used_liters')) || 0), 0);
+          const pLoss = pPurchasedTons - pDeliveredTons;
+
+          const pRangeMonths = getMonthsInRange(ps, pe);
+          const pPlans = (plans || []).filter(p => pRangeMonths.includes((safeGet(p, 'month') || '').substring(0, 7)));
+          const pKPI = pPlans.reduce((sum, p) => sum + (parseFloat(safeGet(p, 'planned_tons')) || 0), 0) || 4000;
+          const pProgress = pKPI > 0 ? (pDeliveredTons / pKPI) * 100 : 0;
+
+          prevKPIs = { purchased: pPurchasedTons, delivered: pDeliveredTons, loss: pLoss, fuel: pFuelUsed, progress: pProgress };
+        }
       }
+    } catch (e) {
+      console.warn("Error calculating previous period:", e);
     }
-  } catch (e) {
-    console.warn("Error calculating previous period:", e);
-  }
+
+    const calcTrend = (curr, prev) => {
+      curr = parseFloat(curr) || 0;
+      prev = parseFloat(prev) || 0;
+      if (prev === 0) return 0;
+      return ((curr - prev) / prev) * 100;
+    };
+
+    const trends = {
+      purchased: calcTrend(purchasedInPeriod, prevKPIs.purchased),
+      delivered: calcTrend(deliveredInPeriod, prevKPIs.delivered),
+      loss: calcTrend(silicaLostInPeriod, prevKPIs.loss),
+      fuel: calcTrend(fuelUsedInPeriod, prevKPIs.fuel),
+      progress: calcTrend(deliveryProgress, prevKPIs.progress)
+    };
     const yearMonths = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -306,9 +377,9 @@ export default function Dashboard() {
       purchaseTrendData: purchaseTrendData || [],
       topCustomers: topCustomers || [],
       fuelComparisonData: fuelComparisonData || [],
-      vehicleFuel: vehicleFuel || [],
-      truckProductivity: truckProductivity || [],
-      prevPeriod: prevPeriodData || { name: 'Previous', target: '0', delivered: '0.0', progress: '0.0' },
+      vehicleFuel,
+      truckProductivity,
+      trends,
       efficiency: {
         yield: ((silicaYieldTotal || 0) * 100).toFixed(1),
         fuelEff: (fuelEfficiencyTotal || 0).toFixed(2)
@@ -327,7 +398,7 @@ export default function Dashboard() {
     );
   }
 
-  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, prevPeriod, efficiency, monthlyKPI, customerPerformance } = dashboardData;
+  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, trends, efficiency, monthlyKPI, customerPerformance } = dashboardData;
 
   const getLossStatus = (val) => val > 30 ? 'warning' : 'optimal';
 
@@ -396,11 +467,11 @@ export default function Dashboard() {
 
       {/* SECTION 1: EXECUTIVE SUMMARY */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-md mb-xl">
-        <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" subtitle="In Range" icon={Droplets} colorClass="text-primary" />
-        <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" subtitle="In Range" icon={PackageCheck} colorClass="text-success" />
-        <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" subtitle="In Range" icon={AlertTriangle} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
-        <KPIButton title="Fuel Consumption" value={kpis.fuel} unit="liters" subtitle="In Range" icon={Activity} colorClass="text-warning" />
-        <KPIButton title="KPI Progress" value={kpis.progress} unit="%" subtitle="vs Monthly Plan" icon={TrendingUp} colorClass="text-success" status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
+        <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" icon={Mountain} colorClass="text-primary" trend={trends.purchased} />
+        <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" icon={Truck} colorClass="text-success" trend={trends.delivered} />
+        <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" icon={TrendingDown} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} trend={trends.loss} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
+        <KPIButton title="Fuel Consumption" value={kpis.fuel} unit="liters" icon={Fuel} colorClass="text-warning" trend={trends.fuel} />
+        <KPIButton title="KPI Progress" value={kpis.progress} unit="%" icon={TrendingUp} colorClass="text-success" trend={trends.progress} status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-xl mb-xl">
@@ -452,39 +523,49 @@ export default function Dashboard() {
           </div>
 
           <div className="mb-lg p-lg bg-surface rounded-xl border-2 border-primary/20 shadow-md">
-            <div className="flex justify-between items-center mb-md">
-              <div className="flex items-center gap-sm">
-                <div className="p-xs bg-primary-light rounded-lg text-primary">
-                  <TrendingUp size={20} />
-                </div>
-                <h4 className="text-xl font-bold tracking-tight text-primary">Summary</h4>
-              </div>
-              <div className="text-4xl font-black text-primary tracking-tighter">
-                {kpis.progress}<span className="text-lg ml-[2px]">%</span>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-md mb-md">
-              <div>
-                <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Total Achieved</p>
-                <p className="text-xl font-bold text-primary">{kpis.delivered}<span className="text-xs ml-xs font-normal"> tons</span></p>
-              </div>
-              <div>
-                <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Overall Target</p>
-                <p className="text-xl font-bold">{monthlyKPI.toLocaleString()}<span className="text-xs ml-xs font-normal"> tons</span></p>
-              </div>
-              <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20">
-                <p className="text-[8px] font-black uppercase tracking-widest">Growth Insight</p>
-                <p className="text-xs font-bold leading-tight">Tracking {customerPerformance.length} Partners</p>
-              </div>
-            </div>
-            
-            <div className="h-4 bg-bg rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
-              <div 
-                className="h-full rounded-full bg-primary shadow-sm transition-all duration-1000 ease-out"
-                style={{ width: `${Math.min(parseFloat(kpis.progress), 100)}%` }}
-              ></div>
-            </div>
+            {(() => {
+              const summaryColors = getProgressColor(kpis.progress);
+              return (
+                <>
+                  <div className="flex justify-between items-center mb-md">
+                    <div className="flex items-center gap-sm">
+                      {/* Standard icon container to match customer part secondary feel */}
+                      <div className="p-xs bg-bg rounded-lg text-secondary border border-border">
+                        <TrendingUp size={20} />
+                      </div>
+                      <h4 className="text-xl font-bold tracking-tight">Summary</h4>
+                    </div>
+                    {/* Matched font size with customer rows (3xl instead of 4xl) */}
+                    <div className={`text-3xl font-black ${summaryColors.text} tracking-tighter`}>
+                      {kpis.progress}<span className="text-sm ml-[2px]">%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-md mb-md">
+                    <div>
+                      <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Total Achieved</p>
+                      <p className={`text-xl font-bold ${summaryColors.text}`}>{kpis.delivered}<span className="text-xs ml-xs font-normal"> tons</span></p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Overall Target</p>
+                      <p className="text-xl font-bold">{monthlyKPI.toLocaleString()}<span className="text-xs ml-xs font-normal"> tons</span></p>
+                    </div>
+                    {/* Fixed Success Colors for Insight Badge */}
+                    <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20">
+                      <p className="text-[8px] font-black uppercase tracking-widest">Growth Insight</p>
+                      <p className="text-xs font-bold leading-tight">Tracking {customerPerformance.length} Partners</p>
+                    </div>
+                  </div>
+                  
+                  <div className="h-4 bg-bg rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+                    <div 
+                      className={`h-full rounded-full ${summaryColors.bg} shadow-sm transition-all duration-1000 ease-out`}
+                      style={{ width: `${Math.min(parseFloat(kpis.progress), 100)}%` }}
+                    ></div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
           
           <div className="grid grid-cols-1 gap-lg">
@@ -496,6 +577,7 @@ export default function Dashboard() {
                   <div key={cp.id} className="p-lg bg-bg rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
                     <div className="flex justify-between items-center mb-md">
                       <div className="flex items-center gap-sm">
+                        {/* Status Accent Bar - Dynamic color from progress */}
                         <div className={`w-1 h-6 rounded-full ${colors.bg}`}></div>
                         <h4 className="text-xl font-bold tracking-tight">{cp.name}</h4>
                       </div>
@@ -507,7 +589,8 @@ export default function Dashboard() {
                     <div className="grid grid-cols-3 gap-md mb-md py-md border-y border-white/10">
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
-                        <p className="text-lg font-bold text-primary">{cp.delivered}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
+                        {/* Metric Value - Dynamic based on progress */}
+                        <p className={`text-lg font-bold ${colors.text}`}>{cp.delivered}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
                       </div>
                       <div>
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
@@ -541,7 +624,7 @@ export default function Dashboard() {
         <div className="card">
           <h3 className="text-lg font-bold mb-md">Vehicle Fuel Usage</h3>
           <p className="text-xs text-secondary mb-lg">Liters consumed in selected range</p>
-          <HorizontalMetricChart data={vehicleFuel} dataKey="liters" color="#fbbf24" unit=" L" />
+          <HorizontalMetricChart data={vehicleFuel} dataKey="liters" unit=" L" />
         </div>
       </div>
 
@@ -568,7 +651,7 @@ export default function Dashboard() {
         <div className="card w-full">
           <h3 className="text-lg font-bold mb-md">Truck Utilization</h3>
           <p className="text-xs text-secondary mb-lg">Total tons delivered in range</p>
-          <HorizontalMetricChart data={truckProductivity} dataKey="tons" color="var(--primary-color)" unit=" t" />
+          <HorizontalMetricChart data={truckProductivity} dataKey="tons" unit=" t" />
         </div>
 
         {/* EXTRA INSIGHT: Top Performing Customers */}
