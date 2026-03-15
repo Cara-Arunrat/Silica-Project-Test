@@ -136,13 +136,42 @@ export default function Dashboard() {
     const deliveredInPeriod = fDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
     const fuelUsedInPeriod = fGasoline.reduce((sum, item) => sum + (parseFloat(safeGet(item, 'fuel_used_liters')) || 0), 0);
     
-    // Monthly Progress always uses current month context for KPI comparison unless in specific month
-    const targetMonthStr = rangeType === 'month' ? dateRange.start.substring(0, 7) : currentMonthStr;
-    const currentPlan = (plans || []).find(p => (safeGet(p, 'month') || '').startsWith(targetMonthStr));
-    const monthlyKPI = currentPlan ? (parseFloat(safeGet(currentPlan, 'planned_tons')) || 4000) : 4000;
-    const deliveryProgress = monthlyKPI > 0 ? (deliveredInPeriod / monthlyKPI) * 100 : 0;
-    
     const silicaLostInPeriod = purchasedInPeriod - deliveredInPeriod;
+
+    // --- 1.2 Customer-Specific KPI Progress ---
+    const targetMonthStr = rangeType === 'month' ? dateRange.start.substring(0, 7) : currentMonthStr;
+    const periodPlans = (plans || []).filter(p => (safeGet(p, 'month') || '').startsWith(targetMonthStr));
+    
+    // Group deliveries in period by customer
+    const deliveriesByCustomer = fDeliveries.reduce((acc, d) => {
+      const cust = safeGet(d, 'customer');
+      if (!cust) return acc;
+      const id = Array.isArray(cust) ? cust[0] : cust;
+      const weight = getTons(d, 'net_weight_kg', 'tons_delivered');
+      acc[id] = (acc[id] || 0) + weight;
+      return acc;
+    }, {});
+
+    // Map plans to progress
+    const customerPerformance = periodPlans.map(plan => {
+      const custId = Array.isArray(plan.customer) ? plan.customer[0] : plan.customer;
+      const delivered = deliveriesByCustomer[custId] || 0;
+      const target = parseFloat(safeGet(plan, 'planned_tons')) || 0;
+      const progress = target > 0 ? (delivered / target) * 100 : 0;
+      
+      return {
+        id: custId,
+        name: getMasterName(custId, customers),
+        delivered: delivered.toFixed(1),
+        target: target.toFixed(0),
+        progress: progress.toFixed(1),
+        progressNum: progress
+      };
+    }).sort((a, b) => b.progressNum - a.progressNum);
+
+    // Global Monthly KPI is now the sum of all plans for that month
+    const monthlyKPI = periodPlans.reduce((sum, p) => sum + (parseFloat(safeGet(p, 'planned_tons')) || 0), 0) || 4000;
+    const deliveryProgress = monthlyKPI > 0 ? (deliveredInPeriod / monthlyKPI) * 100 : 0;
 
     // --- 2. Silica Loss Trend (Fixed Context - Last 4 Months) ---
     const months = [];
@@ -214,19 +243,8 @@ export default function Dashboard() {
                                 .reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0).toFixed(1))
     }));
 
-    // --- 5. Deliveries by Customer (Top 5) ---
-    const customerTotals = fDeliveries.reduce((acc, d) => {
-      const cust = safeGet(d, 'customer');
-      if (!cust) return acc;
-      const id = Array.isArray(cust) ? cust[0] : cust;
-      const weight = getTons(d, 'net_weight_kg', 'tons_delivered');
-      acc[id] = (acc[id] || 0) + weight;
-      return acc;
-    }, {});
-    const topCustomers = Object.entries(customerTotals)
-      .map(([id, tons]) => ({ name: getMasterName(id, customers), tons: parseFloat(tons.toFixed(1)) }))
-      .sort((a, b) => b.tons - a.tons)
-      .slice(0, 5);
+    // --- 5. Deliveries by Customer (Redundant - Replaced by customerPerformance) ---
+    const topCustomers = customerPerformance.slice(0, 5);
 
     // --- 6. Fuel Purchase vs Usage (Grouped Bar) ---
     const fuelComparisonData = months.map(m => {
@@ -284,7 +302,8 @@ export default function Dashboard() {
         yield: (silicaYieldTotal * 100).toFixed(1),
         fuelEff: fuelEfficiencyTotal.toFixed(2)
       },
-      monthlyKPI
+      monthlyKPI,
+      customerPerformance
     };
   }, [loading, purchases, deliveries, gasoline, gasPurchases, plans, customers, vehicles, dateRange, rangeType]);
 
@@ -297,9 +316,16 @@ export default function Dashboard() {
     );
   }
 
-  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, prevPeriod, efficiency, monthlyKPI } = dashboardData;
+  const { kpis, lossTrendData, purchaseTrendData, topCustomers, fuelComparisonData, vehicleFuel, truckProductivity, prevPeriod, efficiency, monthlyKPI, customerPerformance } = dashboardData;
 
   const getLossStatus = (val) => val > 30 ? 'warning' : 'optimal';
+
+  const getProgressColor = (percent) => {
+    const p = parseFloat(percent);
+    if (p < 50) return { text: 'text-warning', bg: 'bg-warning', label: 'Low' };
+    if (p < 80) return { text: 'text-success', bg: 'bg-success', label: 'Medium' };
+    return { text: 'text-primary', bg: 'bg-primary', label: 'Success' };
+  };
 
   return (
     <div className="dashboard-v2 pb-xl">
@@ -408,50 +434,81 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-xl mb-xl">
-        {/* SECTION 3 & 4: DELIVERY KPI PROGRESS */}
+        {/* SECTION 3 & 4: CUSTOMER PERFORMANCE MONITORING (Integrated) */}
         <div className="lg:col-span-2 card">
-          <h3 className="text-lg font-bold mb-md">Delivery Performance vs Target</h3>
+          <div className="flex justify-between items-center mb-md">
+            <h3 className="text-xl font-bold">Partner Delivery Progress</h3>
+            <span className="text-xs font-bold text-secondary uppercase bg-bg px-sm py-xs rounded">
+              KPI Target: {monthlyKPI.toLocaleString()} tons
+            </span>
+          </div>
           
-          <div className="mb-xl p-lg bg-bg rounded-xl border border-border">
-            <div className="flex justify-between items-end mb-sm text-sm">
-              <div>
-                <p className="text-xs text-secondary font-bold uppercase mb-xs">Range Progress</p>
-                <div className="flex items-baseline gap-xs">
-                  <span className="text-3xl font-black text-primary">{kpis.delivered} <span className="text-sm font-normal text-secondary">tons</span></span>
-                </div>
+          <div className="grid grid-cols-1 gap-lg">
+            {customerPerformance.length > 0 ? (
+              customerPerformance.map(cp => {
+                const colors = getProgressColor(cp.progress);
+                return (
+                  <div key={cp.id} className="p-lg bg-bg rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start mb-lg text-sm border-b border-white pb-md">
+                      <div>
+                        <div className="flex items-center gap-sm mb-sm">
+                           <div className={`w-1 h-6 rounded-full ${colors.bg}`}></div>
+                           <h4 className="text-2xl font-black tracking-tighter" style={{ color: 'var(--text-primary)', lineHeight: 1 }}>{cp.name}</h4>
+                        </div>
+                        <div className="flex items-baseline gap-xs">
+                          <span className="text-xl font-bold text-primary">{cp.delivered} <span className="text-xs font-normal text-secondary uppercase tracking-widest">tons delivered</span></span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Monthly Progress</p>
+                        <p className={`text-4xl font-black ${colors.text}`} style={{ lineHeight: 1 }}>
+                          {cp.progress}<span className="text-sm ml-[2px]">%</span>
+                        </p>
+                        <p className="text-[10px] text-secondary mt-xs font-medium">Goal: {cp.target} t</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-sm">
+                      <div className="flex justify-between items-center mb-xs">
+                         <span className="text-[10px] font-bold text-secondary uppercase tracking-tight">Efficiency Track</span>
+                         <span className={`text-[10px] font-black uppercase ${colors.text}`}>{colors.label} status</span>
+                      </div>
+                      <div className="h-5 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+                        <div 
+                          className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bg} shadow-sm`}
+                          style={{ width: `${Math.min(parseFloat(cp.progress), 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-xl text-center text-secondary bg-bg rounded-xl border border-dashed border-border">
+                No delivery plans found for selected range.
               </div>
-              <div className="text-right">
-                <p className="text-xs text-secondary mb-xs">Plan Reference: {monthlyKPI.toLocaleString()} t</p>
-                <p className="text-2xl font-bold text-success">{kpis.progress}%</p>
-              </div>
-            </div>
-            <div className="h-4 bg-surface rounded-full overflow-hidden border border-border">
-              <div 
-                className="h-full bg-gradient-to-r from-primary to-success transition-all duration-1000 ease-out"
-                style={{ width: `${Math.min(parseFloat(kpis.progress), 100)}%` }}
-              ></div>
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-md mt-xl">
              <div>
-               <h4 className="text-sm font-bold text-secondary mb-md border-b border-border pb-xs uppercase">Comparison Summary</h4>
+               <h4 className="text-sm font-bold text-secondary mb-md border-b border-border pb-xs uppercase">Aggregate Summary</h4>
                <div className="flex items-center gap-lg">
                  <div className="flex flex-col">
-                    <span className="text-xs text-secondary font-medium">{prevPeriod.name}</span>
-                    <span className="text-xl font-bold">{prevPeriod.progress}%</span>
+                    <span className="text-xs text-secondary font-medium">Total Progress</span>
+                    <span className="text-xl font-bold">{kpis.progress}%</span>
                  </div>
                  <div className="flex-1 text-xs text-secondary">
-                   <p>Target: {prevPeriod.target} tons</p>
-                   <p>Delivered: {prevPeriod.delivered} tons</p>
+                   <p>Target: {monthlyKPI.toLocaleString()} tons</p>
+                   <p>Delivered: {kpis.delivered} tons</p>
                  </div>
                </div>
              </div>
              <div className="bg-success-light text-success p-sm px-md rounded-xl flex items-center gap-sm">
-               <Truck size={24} />
+               <TrendingUp size={24} />
                <div>
-                  <p className="text-[10px] font-bold uppercase">Fleet Readiness</p>
-                  <p className="text-sm font-medium">Optimal utilization detected</p>
+                  <p className="text-[10px] font-bold uppercase">Growth Insight</p>
+                  <p className="text-sm font-medium">Tracking {customerPerformance.length} key partners</p>
                </div>
              </div>
           </div>
@@ -482,18 +539,29 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-xl">
-        {/* SECTION 6: DELIVERIES BY CUSTOMER */}
-        <div className="card">
-          <h3 className="text-lg font-bold mb-md">Top 5 Customers</h3>
-          <p className="text-xs text-secondary mb-lg">Delivered tons in range</p>
-          <HorizontalMetricChart data={topCustomers} dataKey="tons" color="var(--success-color)" unit=" t" />
-        </div>
-
+        {/* SECTION 6: DELIVERIES BY CUSTOMER (Combined above - replaced with extra insight or spacing) */}
+        
         {/* SECTION 9: TRUCK PRODUCTIVITY */}
-        <div className="card">
+        <div className="card w-full">
           <h3 className="text-lg font-bold mb-md">Truck Utilization</h3>
           <p className="text-xs text-secondary mb-lg">Total tons delivered in range</p>
           <HorizontalMetricChart data={truckProductivity} dataKey="tons" color="var(--primary-color)" unit=" t" />
+        </div>
+
+        {/* EXTRA INSIGHT: Top Performing Customers */}
+        <div className="card w-full">
+          <h3 className="text-lg font-bold mb-md">Productivity Snapshot</h3>
+          <p className="text-xs text-secondary mb-lg">Aggregated operational throughput</p>
+          <div className="flex flex-col gap-md">
+            <div className="bg-bg p-md rounded-lg flex justify-between items-center">
+              <span className="text-sm font-medium text-secondary">Total Delivered</span>
+              <span className="text-lg font-bold text-success">{kpis.delivered} t</span>
+            </div>
+            <div className="bg-bg p-md rounded-lg flex justify-between items-center">
+              <span className="text-sm font-medium text-secondary">Active Contracts</span>
+              <span className="text-lg font-bold text-primary">{customerPerformance.length}</span>
+            </div>
+          </div>
         </div>
       </div>
 

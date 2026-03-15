@@ -9,6 +9,7 @@ export default function HistoryPage() {
   // Filter State
   const [rangeType, setRangeType] = useState('month');
   const [supplierFilter, setSupplierFilter] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const y = today.getFullYear();
@@ -122,6 +123,26 @@ export default function HistoryPage() {
             </div>
           )}
 
+
+
+          {(activeTab === 'delivery' || activeTab === 'plan') && (
+            <div className="form-group mb-0">
+              <select
+                className="form-control"
+                value={customerFilter}
+                onChange={(e) => setCustomerFilter(e.target.value)}
+                style={{ padding: '8px 12px', minWidth: '180px' }}
+              >
+                <option value="">All Customers</option>
+                {customers?.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {getName(c._id, customers, loadCustomers)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {rangeType === 'custom' && (
             <div className="card p-sm flex items-center gap-sm" style={{ padding: '8px 16px', margin: 0, border: '1px solid var(--primary-color)' }}>
               <div className="flex items-center gap-xs">
@@ -201,6 +222,11 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.DELIVERIES}
               columns={['Date', 'Customer Name', 'Product Grade', 'Vehicle Name', 'Driver Name', 'Weight (kg)', 'Cert No.', 'Weighing Sequence No.']}
               dateRange={dateRange}
+              filterRecord={(record, safeGet) => {
+                if (!customerFilter) return true;
+                const val = safeGet('customer');
+                return val && (Array.isArray(val) ? val.includes(customerFilter) : String(val).includes(customerFilter));
+              }}
               renderRow={(row, get) => (
                 <>
                   <td>{get('date')}</td>
@@ -282,6 +308,11 @@ export default function HistoryPage() {
               tableName={TABLE_NAMES.PLAN}
               columns={['Target Month', 'Customer Name', 'Planned Tons', 'Submitted Date']}
               dateRange={dateRange}
+              filterRecord={(record, safeGet) => {
+                if (!customerFilter) return true;
+                const val = safeGet('customer');
+                return val && (Array.isArray(val) ? val.includes(customerFilter) : String(val).includes(customerFilter));
+              }}
               renderRow={(row, get) => (
                 <>
                   <td className="font-medium">{get('month')}</td>

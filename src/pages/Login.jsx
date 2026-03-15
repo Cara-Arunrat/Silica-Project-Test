@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const { login, error, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    if (!username.trim() || !password.trim()) return;
     
-    const success = await login(username.trim());
+    const success = await login(username.trim(), password.trim());
     if (success) {
       navigate('/');
     }
@@ -21,9 +22,9 @@ export default function Login() {
     <div className="login-container">
       <div className="login-card card">
         <h1 className="logo text-center mb-lg">SilicaOps</h1>
-        <h2 className="text-xl font-bold mb-md text-center">Sign In</h2>
+        <h2 className="text-xl font-bold mb-md text-center">Secure Sign In</h2>
         <p className="text-secondary text-center mb-lg text-sm">
-          Phase 1 Demo Login. Enter your username (e.g. "admin" or "manager").
+          Enter your credentials to access the operations dashboard.
         </p>
 
         {error && (
@@ -40,18 +41,30 @@ export default function Login() {
               className="form-control" 
               value={username} 
               onChange={(e) => setUsername(e.target.value)} 
-              placeholder="admin"
+              placeholder="Enter username"
               disabled={loading}
               autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input 
+              type="password" 
+              className="form-control" 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="••••••••"
+              disabled={loading}
             />
           </div>
           
           <button 
             type="submit" 
             className="btn btn-primary w-full mt-md"
-            disabled={loading || !username.trim()}
+            disabled={loading || !username.trim() || !password.trim()}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
       </div>

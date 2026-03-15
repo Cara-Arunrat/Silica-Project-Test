@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (username) => {
+  const login = async (username, password) => {
     setLoading(true);
     setError('');
     try {
@@ -30,6 +30,15 @@ export const AuthProvider = ({ children }) => {
       }).firstPage();
 
       if (records.length > 0) {
+        const storedPassword = records[0].fields.password;
+        
+        // Check if password column exists and matches
+        if (!storedPassword || storedPassword !== password) {
+          setError('Invalid username or password.');
+          setLoading(false);
+          return false;
+        }
+
         const userData = {
           id: records[0].id,
           username: records[0].fields.username,
@@ -40,13 +49,13 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
         return true;
       } else {
-        setError('User not found.');
+        setError('Invalid username or password.');
         setLoading(false);
         return false;
       }
     } catch (err) {
       console.error(err);
-      setError('Connection error or table missing. Please ensure Airtable is configured correctly.');
+      setError('Connection error. Please check your credentials and try again.');
       setLoading(false);
       return false;
     }
