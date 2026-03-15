@@ -25,13 +25,13 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
   return (
     <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" 
          style={{ padding: window.innerWidth < 480 ? '16px' : '24px' }}>
-      {/* Status Badge - Balanced Refined Padding */}
+      {/* Status Badge - Refined 12px Typography */}
       {status && (
         <div className={`absolute text-white uppercase tracking-widest font-black rounded-lg shadow-sm ${status === 'warning' ? 'bg-orange' : 'bg-success'}`} 
              style={{ 
                top: window.innerWidth < 480 ? '10px' : '15px', 
                right: window.innerWidth < 480 ? '10px' : '15px',
-               fontSize: window.innerWidth < 480 ? '10px' : '13px',
+               fontSize: '12px',
                padding: window.innerWidth < 480 ? '4px 10px' : '6px 16px',
                zIndex: 10
              }}>
@@ -51,19 +51,23 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
           <Icon size={window.innerWidth < 480 ? 20 : 24} className={colorClass} />
         </div>
         
-        {/* Lighter Gray Title - 13px & Unbolded */}
-        <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px', fontWeight: 400 }}>{title}</p>
+        {/* Lighter Gray Title - 12px & Unbolded */}
+        <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: '12px', fontWeight: 400 }}>{title}</p>
         
         <div className="flex items-baseline justify-between mt-auto flex-wrap gap-xs" style={{ width: '100%' }}>
-          {/* Value and Unit (13px & Bottom Aligned) */}
+          {/* Value (-1px) and Unit (12px) */}
           <div style={{ display: 'flex', alignItems: 'baseline', whiteSpace: 'nowrap', gap: '4px' }}>
-            <span className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter" style={{ lineHeight: 1 }}>{value}</span>
-            <span className="text-secondary" style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
+            <span className="font-black text-slate-900 tracking-tighter" 
+                  style={{ 
+                    lineHeight: 1, 
+                    fontSize: window.innerWidth < 480 ? '23px' : '29px' 
+                  }}>{value}</span>
+            <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
           </div>
           
-          {/* Trend - 13px, No Background */}
+          {/* Trend - 12px */}
           {trend !== undefined && (
-            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: window.innerWidth < 480 ? '11px' : '13px' }}>
+            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '12px' }}>
               <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
               <span style={{ lineHeight: 1 }}>{Math.abs(parseFloat(trend)).toFixed(0)}%</span>
             </div>
