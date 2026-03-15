@@ -460,51 +460,37 @@ export default function Dashboard() {
                 const colors = getProgressColor(cp.progress);
                 const remaining = Math.max(0, cp.target - cp.delivered).toFixed(1);
                 return (
-                  <div key={cp.id} className="p-xl bg-surface rounded-2xl border border-border shadow-md hover:shadow-lg transition-all relative overflow-hidden">
-                    {/* Subtle aesthetic background element */}
-                    <div className={`absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-10 ${colors.bg}`}></div>
-                    
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-lg relative z-10">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-sm mb-md">
-                           <div className={`w-2 h-8 rounded-full ${colors.bg} shadow-sm`}></div>
-                           <h4 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{cp.name}</h4>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-xl">
-                          <div>
-                            <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
-                            <div className="flex items-baseline gap-xs">
-                              <span className="text-3xl font-bold text-primary">{cp.delivered}</span>
-                              <span className="text-xs text-secondary font-medium uppercase">tons</span>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
-                            <div className="flex items-baseline gap-xs">
-                              <span className={`text-3xl font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{remaining}</span>
-                              <span className="text-xs text-secondary font-medium uppercase">tons</span>
-                            </div>
-                          </div>
-                        </div>
+                  <div key={cp.id} className="p-lg bg-bg rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
+                    <div className="flex justify-between items-center mb-md">
+                      <div className="flex items-center gap-sm">
+                        <div className={`w-1 h-6 rounded-full ${colors.bg}`}></div>
+                        <h4 className="text-xl font-bold tracking-tight">{cp.name}</h4>
                       </div>
-
-                      <div className="bg-bg p-lg rounded-2xl border border-border flex flex-col items-center justify-center min-w-[140px] shadow-inner">
-                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Progress</p>
-                        <div className={`text-6xl font-black ${colors.text} tracking-tighter`} style={{ lineHeight: 1 }}>
-                          {cp.progress}<span className="text-2xl ml-[2px]">%</span>
-                        </div>
-                        <p className="text-[10px] text-secondary mt-sm font-bold">Goal: {cp.target} t</p>
+                      <div className={`text-3xl font-black ${colors.text} tracking-tighter`}>
+                        {cp.progress}<span className="text-sm ml-[2px]">%</span>
                       </div>
                     </div>
                     
-                    <div className="mt-xl">
-                      <div className="h-4 bg-bg rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bg} shadow-md`}
-                          style={{ width: `${Math.min(parseFloat(cp.progress), 100)}%` }}
-                        ></div>
+                    <div className="grid grid-cols-3 gap-md mb-md py-md border-y border-white/10">
+                      <div>
+                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
+                        <p className="text-lg font-bold text-primary">{cp.delivered}<span className="text-[10px] ml-xs font-normal">t</span></p>
                       </div>
+                      <div>
+                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
+                        <p className={`text-lg font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{remaining}<span className="text-[10px] ml-xs font-normal">t</span></p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Target</p>
+                        <p className="text-lg font-bold">{cp.target}<span className="text-[10px] ml-xs font-normal">t</span></p>
+                      </div>
+                    </div>
+                    
+                    <div className="h-3 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bg} shadow-sm`}
+                        style={{ width: `${Math.min(parseFloat(cp.progress), 100)}%` }}
+                      ></div>
                     </div>
                   </div>
                 );
