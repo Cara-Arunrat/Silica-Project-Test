@@ -120,11 +120,23 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
       // Remove strict server-side formula constraints to prevent field missing errors
       const records = await base(tableName).select().all();
       
-      let formattedData = records.map(record => ({
-        _id: record.id,
-        _createdTime: record.createdTime || record._rawJson?.createdTime,
-        ...record.fields
-      }));
+      let formattedData = records.map(record => {
+        const fields = record.fields;
+        const cbKey = findKey(Object.keys(fields), 'created by') || 
+                      findKey(Object.keys(fields), 'created_by') ||
+                      findKey(Object.keys(fields), 'author');
+        let createdByVal = cbKey ? fields[cbKey] : null;
+        if (createdByVal && typeof createdByVal === 'object') {
+          createdByVal = createdByVal.name || createdByVal.email || createdByVal.id || JSON.stringify(createdByVal);
+        }
+
+        return {
+          _id: record.id,
+          _createdTime: record.createdTime || record._rawJson?.createdTime,
+          _createdBy: createdByVal || '',
+          ...fields
+        };
+      });
 
       // Robust client-side filtering and structuring based on variations
       if (filterActiveOnly) {
@@ -141,7 +153,14 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
       // Robust client-side sort primarily by ID fallback
       formattedData.sort((a, b) => String(b._id).localeCompare(String(a._id)));
       
-      setData(formattedData);
+      // Merge locally-known _createdBy from localStorage
+      const cbMap = getCreatedByMap();
+      const finalData = formattedData.map(item => ({
+        ...item,
+        _createdBy: item._createdBy || cbMap[item._id] || ''
+      }));
+
+      setData(finalData);
       setError(null);
     } catch (err) {
       console.error(`Error fetching ${tableName}:`, err);
@@ -171,7 +190,12 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
       try {
         const payload = normalizeFields(currentFields, data, tableName);
         const newRecord = await base(tableName).create([{ fields: payload }]);
-        const formattedRecord = { _id: newRecord[0].id, ...newRecord[0].fields };
+        
+        // Track authorship locally
+        const createdByName = user?.username || user?.id || '';
+        if (createdByName) setCreatedByMap(newRecord[0].id, createdByName);
+
+        const formattedRecord = { _id: newRecord[0].id, _createdBy: createdByName, ...newRecord[0].fields };
         setData(prev => [formattedRecord, ...prev]);
         fetchData();
         return formattedRecord;
