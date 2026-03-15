@@ -13,7 +13,9 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
 
     if (dateRange) {
       result = result.filter(record => {
-        const dateKey = findKey(Object.keys(record), 'date') || 
+        const dateKey = findKey(Object.keys(record), 'purchase_date') ||
+                        findKey(Object.keys(record), 'purchase date') ||
+                        findKey(Object.keys(record), 'date') || 
                         findKey(Object.keys(record), 'month') || 
                         findKey(Object.keys(record), 'submitted date');
         

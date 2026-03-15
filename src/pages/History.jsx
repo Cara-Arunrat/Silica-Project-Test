@@ -199,28 +199,28 @@ export default function HistoryPage() {
               dateRange={dateRange}
               filterRecord={(record, safeGet) => {
                 if (!supplierFilter) return true;
-                const val = safeGet('supplier') || safeGet('supplier_id');
+                const val = safeGet('supplier') || safeGet('supplier_id') || safeGet('Supplier');
                 return val && String(val).includes(supplierFilter);
               }}
               renderRow={(row, get) => (
                 <>
-                  <td>{get('date') || get('purchase_date')}</td>
-                  <td>{getName(get('supplier'), suppliers, loadSuppliers)}</td>
-                  <td>{getName(get('raw material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS)}</td>
+                  <td>{get('purchase_date') || get('purchase date') || get('date') || '-'}</td>
+                  <td>{getName(get('supplier') || get('Supplier'), suppliers, loadSuppliers)}</td>
+                  <td>{getName(get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS)}</td>
                   <td className="font-medium">
                     {get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-'}
                   </td>
-                  <td>{get('Price') || '-'}</td>
-                  <td className="font-bold text-primary">{get('Total_Cost') || '-'}</td>
+                  <td>{get('Price') || get('price') || get('price_per_unit') || '-'}</td>
+                  <td className="font-bold text-primary">{get('Total_Cost') || get('total_cost') || get('total cost') || '-'}</td>
                 </>
               )}
               onExport={(get) => ({
-                'Date': get('date') || get('purchase_date'),
-                'Supplier': getName(get('supplier'), suppliers, loadSuppliers),
-                'Material': getName(get('raw material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS),
+                'Date': get('purchase_date') || get('purchase date') || get('date'),
+                'Supplier': getName(get('supplier') || get('Supplier'), suppliers, loadSuppliers),
+                'Material': getName(get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS),
                 'Purchase (tons)': get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-',
-                'Price per unit': get('Price') || '-',
-                'Total Cost': get('Total_Cost') || '-',
+                'Price per unit': get('Price') || get('price') || '-',
+                'Total Cost': get('Total_Cost') || get('total_cost') || '-',
                 'Notes': get('notes') || '-'
               })}
             />
