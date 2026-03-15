@@ -154,6 +154,7 @@ input, select, textarea {
 
 .rounded-lg { border-radius: var(--border-radius-lg); }
 .rounded-xl { border-radius: 16px; }
+.rounded-2xl { border-radius: 24px; }
 .rounded-full { border-radius: 9999px; }
 
 .shadow-sm { box-shadow: var(--shadow-sm); }
