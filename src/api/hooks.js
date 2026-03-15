@@ -81,7 +81,11 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'meter_start': 'Meter Start',
         'meter_end': 'Meter End',
         'fuel_used': 'Fuel Used',
-        'created_by': 'created_by'
+        'created_by': 'created_by',
+        'vehicle_name': 'vehicle_name',
+        'vehicle_type': 'vehicle_type',
+        'truck_plate': 'truck_plate',
+        'trailer_plate': 'trailer_plate'
       };
       
       if (common[lowerKey]) {

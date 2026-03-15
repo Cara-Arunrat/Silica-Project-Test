@@ -11,6 +11,7 @@ import DeliveryForm from './forms/DeliveryForm';
 import GasolineForm from './forms/GasolineForm';
 import ProductionForm from './forms/ProductionForm';
 import MonthlyPlanForm from './forms/MonthlyPlanForm';
+import VehicleForm from './forms/VehicleForm';
 
 export default function Inputs() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function Inputs() {
     { id: 'gasoline', label: 'Gasoline Usage' },
     { id: 'production', label: 'Production Logs' },
     { id: 'plan', label: 'Monthly Plans' },
+    { id: 'vehicle', label: 'Vehicles' },
   ];
 
   return (
@@ -56,6 +58,7 @@ export default function Inputs() {
           {activeTab === 'gasoline' && <GasolineForm />}
           {activeTab === 'production' && <ProductionForm />}
           {activeTab === 'plan' && <MonthlyPlanForm />}
+          {activeTab === 'vehicle' && <VehicleForm />}
         </div>
       </div>
 
