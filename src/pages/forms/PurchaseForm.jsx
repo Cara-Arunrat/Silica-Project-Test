@@ -231,53 +231,54 @@ export default function PurchaseForm() {
 
           <div className="p-md space-y-md">
             {rows.map((row, index) => (
-              <div key={row.tempId} className={`flex flex-col sm:flex-row items-end gap-md p-md rounded-xl border transition-all duration-300 ${isSubmitting ? 'opacity-50' : 'hover:border-primary-light hover:shadow-md'} bg-surface`} style={{ borderColor: 'var(--border-color)' }}>
-                {/* Index / Numbering - Centered with input (38px height) */}
-                <div className="hidden sm:flex flex-none items-center justify-center h-[38px]">
+              <div key={row.tempId} className={`flex items-end gap-md p-md rounded-xl border transition-all duration-300 ${isSubmitting ? 'opacity-50' : 'hover:border-primary-light hover:shadow-md'} bg-surface`} style={{ borderColor: 'var(--border-color)' }}>
+                {/* Numbering */}
+                <div className="flex-none flex items-center justify-center h-[38px]">
                   <span className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-xs font-bold text-secondary shadow-sm">
                     {index + 1}
                   </span>
                 </div>
                 
-                <div className="flex-1 purchase-row-entry">
-                  <div className="form-group mb-0 col-tons">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Tons</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      className="form-control font-medium text-sm" 
-                      placeholder="0.00"
-                      value={row.tons_purchase}
-                      onChange={(e) => updateRow(row.tempId, 'tons_purchase', e.target.value)}
-                      required
-                      disabled={isSubmitting}
-                      style={{ height: '38px' }}
-                    />
-                  </div>
+                {/* Inputs Row - Tons */}
+                <div className="form-group mb-0" style={{ flex: '0 0 110px' }}>
+                  <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Tons</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    className="form-control font-medium text-sm" 
+                    placeholder="0.00"
+                    value={row.tons_purchase}
+                    onChange={(e) => updateRow(row.tempId, 'tons_purchase', e.target.value)}
+                    required
+                    disabled={isSubmitting}
+                    style={{ height: '38px' }}
+                  />
+                </div>
 
-                  <div className="form-group mb-0 col-cost">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Total Cost</label>
-                    <div className="form-control bg-bg-light flex items-center font-bold text-sm text-primary border-dashed" style={{ height: '38px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                       ฿ {row.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-
-                  <div className="form-group mb-0 col-notes">
-                    <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Notes</label>
-                    <input 
-                      type="text"
-                      className="form-control text-sm" 
-                      placeholder="Optional notes..."
-                      value={row.notes}
-                      onChange={(e) => updateRow(row.tempId, 'notes', e.target.value)}
-                      disabled={isSubmitting}
-                      style={{ height: '38px' }}
-                    />
+                {/* Inputs Row - Cost */}
+                <div className="form-group mb-0" style={{ flex: '0 0 160px' }}>
+                  <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Total Cost</label>
+                  <div className="form-control bg-bg-light flex items-center font-bold text-sm text-primary border-dashed" style={{ height: '38px', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                     ฿ {row.total_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </div>
                 </div>
 
-                {/* Trash Icon - Centered with input (38px height) */}
-                <div className="flex items-center justify-center h-[38px]">
+                {/* Inputs Row - Notes */}
+                <div className="form-group mb-0 flex-1">
+                  <label className="form-label text-[10px] uppercase font-bold text-secondary truncate">Notes</label>
+                  <input 
+                    type="text"
+                    className="form-control text-sm" 
+                    placeholder="Optional notes..."
+                    value={row.notes}
+                    onChange={(e) => updateRow(row.tempId, 'notes', e.target.value)}
+                    disabled={isSubmitting}
+                    style={{ height: '38px' }}
+                  />
+                </div>
+
+                {/* Trash Icon */}
+                <div className="flex-none flex items-center justify-center h-[38px]">
                   {rows.length > 1 && (
                     <button 
                       type="button" 
@@ -378,18 +379,8 @@ export default function PurchaseForm() {
         .form-control.bg-bg { border-style: solid; }
         .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06); }
         
-        .purchase-row-entry {
-          display: flex;
-          gap: 12px;
-          align-items: flex-end;
-          width: 100%;
-        }
-        .col-tons { flex: 0 0 110px; }
-        .col-cost { flex: 0 0 160px; }
-        .col-notes { flex: 1; min-width: 0; }
         @media (max-width: 640px) {
-          .purchase-row-entry { flex-direction: column; align-items: stretch; }
-          .col-tons, .col-cost { flex: 1; }
+          .card .grid { grid-cols-1; }
         }
       `}</style>
     </div>
