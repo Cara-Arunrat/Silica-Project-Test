@@ -44,9 +44,10 @@ export default function HistoryPage() {
   const { data: suppliers, loading: loadSuppliers } = useMasterData(TABLE_NAMES.SUPPLIERS);
   const { data: customers, loading: loadCustomers } = useMasterData(TABLE_NAMES.CUSTOMERS);
   const { data: grades, loading: loadGrades } = useMasterData(TABLE_NAMES.PRODUCT_GRADES);
+  const { data: materials, loading: loadMaterials } = useMasterData(TABLE_NAMES.RAW_MATERIALS);
 
   // Helper to resolve linked record names
-  const getName = useMemo(() => (ids, masterList, isLoading) => {
+  const getName = useMemo(() => (ids, masterList, isLoading, tableName = '') => {
     if (isLoading && (!masterList || masterList.length === 0)) return '...';
     if (!ids) return '-';
     
@@ -62,6 +63,9 @@ export default function HistoryPage() {
     const names = idArray.map(id => {
       const match = masterList.find(item => item._id === id || item.id === id);
       if (match) {
+        // Special field logic
+        if (tableName === TABLE_NAMES.RAW_MATERIALS) return match.product_code || match.Name || id;
+
         // Try to find any field that looks like a name/text
         return match.name || match.Name || match.username || match.text || 
                match[Object.keys(match).find(k => k.toLowerCase().includes('name'))] || 
@@ -75,9 +79,10 @@ export default function HistoryPage() {
   const tabs = [
     { id: 'purchase', label: 'Purchases' },
     { id: 'delivery', label: 'Deliveries' },
+    { id: 'gas_purchase', label: 'Gasoline Purchase' },
     { id: 'gasoline', label: 'Gasoline Usage' },
-    { id: 'production', label: 'Production Logs' },
     { id: 'plan', label: 'Monthly Plans' },
+    { id: 'vehicle', label: 'Vehicles' }
   ];
 
   return (
@@ -190,28 +195,52 @@ export default function HistoryPage() {
             <HistoryTable
               title="Purchase"
               tableName={TABLE_NAMES.PURCHASES}
-              columns={['Date', 'Supplier Name', 'Purchase (tons)', 'Notes']}
+              columns={['Date', 'Supplier', 'Material', 'Tons (t)', 'Price (฿)', 'Total Cost (฿)']}
               dateRange={dateRange}
               filterRecord={(record, safeGet) => {
                 if (!supplierFilter) return true;
-                const val = safeGet('supplier') || safeGet('supplierid');
+                const val = safeGet('supplier') || safeGet('supplier_id');
                 return val && String(val).includes(supplierFilter);
               }}
               renderRow={(row, get) => (
                 <>
-                  <td>{get('date')}</td>
+                  <td>{get('date') || get('purchase_date')}</td>
                   <td>{getName(get('supplier'), suppliers, loadSuppliers)}</td>
+                  <td>{getName(get('raw material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS)}</td>
                   <td className="font-medium">
-                    {get('tons_puchase') || get('tons purchase') || get('tons_purchase') || get('kg_purchase') || get('kg purchase') || '-'}
+                    {get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-'}
                   </td>
-                  <td className="text-secondary text-sm">{get('notes') || '-'}</td>
+                  <td>{get('Price') || '-'}</td>
+                  <td className="font-bold text-primary">{get('Total_Cost') || '-'}</td>
                 </>
               )}
               onExport={(get) => ({
-                'Date': get('date'),
-                'Supplier Name': getName(get('supplier'), suppliers, loadSuppliers),
-                'Purchase (tons)': get('tons_puchase') || get('tons purchase') || get('tons_purchase') || (parseFloat(get('kg_purchase')) / 1000) || '-',
+                'Date': get('date') || get('purchase_date'),
+                'Supplier': getName(get('supplier'), suppliers, loadSuppliers),
+                'Material': getName(get('raw material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS),
+                'Purchase (tons)': get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-',
+                'Price per unit': get('Price') || '-',
+                'Total Cost': get('Total_Cost') || '-',
                 'Notes': get('notes') || '-'
+              })}
+            />
+          )}
+
+          {activeTab === 'gas_purchase' && (
+            <HistoryTable
+              title="Gasoline Purchase"
+              tableName={TABLE_NAMES.GASOLINE_PURCHASES}
+              columns={['Arrival Date', 'Fuel Added (L)']}
+              dateRange={dateRange}
+              renderRow={(row, get) => (
+                <>
+                  <td>{get('date') || get('purchase_date') || get('purchase date')}</td>
+                  <td className="font-bold text-primary">{get('fuel_liters') || get('fuel liters')} L</td>
+                </>
+              )}
+              onExport={(get) => ({
+                'Arrival Date': get('date') || get('purchase_date') || get('purchase date'),
+                'Fuel Added (Liters)': get('fuel_liters') || get('fuel liters')
               })}
             />
           )}
@@ -277,27 +306,25 @@ export default function HistoryPage() {
             />
           )}
 
-          {activeTab === 'production' && (
+          {activeTab === 'vehicle' && (
             <HistoryTable
-              title="Production"
-              tableName={TABLE_NAMES.PRODUCTION}
-              columns={['Date', 'Input (t)', 'Output (t)', 'Yield %', 'Notes']}
-              dateRange={dateRange}
+              title="Vehicle"
+              tableName={TABLE_NAMES.VEHICLES}
+              columns={['Vehicle Name', 'Vehicle Type', 'Truck Plate', 'Trailer Plate']}
+              dateRange={null} // Master data doesn't usually filter by date
               renderRow={(row, get) => (
                 <>
-                  <td>{get('date')}</td>
-                  <td>{get('raw input tons')}</td>
-                  <td>{get('output tons')}</td>
-                  <td className="font-medium">{get('yield percent')}%</td>
-                  <td className="text-secondary text-sm">{get('notes') || '-'}</td>
+                  <td className="font-bold">{get('vehicle_name') || get('name')}</td>
+                  <td>{get('vehicle_type')}</td>
+                  <td className="text-sm">{get('truck_plate')}</td>
+                  <td className="text-sm">{get('trailer_plate')}</td>
                 </>
               )}
               onExport={(get) => ({
-                'Date': get('date'),
-                'Input (t)': get('raw input tons'),
-                'Output (t)': get('output tons'),
-                'Yield %': get('yield percent'),
-                'Notes': get('notes') || '-'
+                'Vehicle Name': get('vehicle_name') || get('name'),
+                'Vehicle Type': get('vehicle_type'),
+                'Truck Plate': get('truck_plate'),
+                'Trailer Plate': get('trailer_plate')
               })}
             />
           )}

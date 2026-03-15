@@ -66,17 +66,18 @@ const normalizeFields = (inputFields, existingData, tableName) => {
       // Fallback mappings if no clue from existing data
       const lowerKey = key.toLowerCase().trim();
       const common = {
-        'date': 'Date',
+        'date': 'purchase_date',
         'active': 'Active',
         'net_weight_kg': 'net_weight_kg',
         'delivery_certificate_no': 'delivery_certificate_no',
         'weighing_sequence_no': 'weighing_sequence_no',
-        'tons_puchase': 'tons_puchase',
+        'tons_purchase': 'tons_purchase',
+        'tons_puchase': 'tons_purchase',
         'kg_purchase': 'kg_purchase',
         'vehicle_id': 'Vehicle',
         'driver_id': 'Driver',
         'customer_id': 'Customer',
-        'supplier_id': 'Supplier',
+        'supplier_id': 'supplier',
         'product_grade_id': 'Product Grade',
         'meter_start': 'Meter Start',
         'meter_end': 'Meter End',
@@ -88,9 +89,9 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'trailer_plate': 'trailer_plate',
         'purchase_date': 'purchase_date',
         'fuel_liters': 'fuel_liters',
-        'material_id': 'Raw Material',
-        'price_per_unit': 'Price_per_unit',
-        'total_cost': 'total_cost',
+        'material_id': 'raw material',
+        'price_per_unit': 'Price',
+        'total_cost': 'Total_Cost',
         'product_code': 'product_code'
       };
       
