@@ -232,8 +232,8 @@ export default function PurchaseForm() {
           <div className="p-md space-y-md">
             {rows.map((row, index) => (
               <div key={row.tempId} className={`flex flex-col sm:flex-row items-stretch gap-md p-md rounded-xl border transition-all duration-300 ${isSubmitting ? 'opacity-50' : 'hover:border-primary-light hover:shadow-md'} bg-surface`} style={{ borderColor: 'var(--border-color)' }}>
-                <div className="hidden sm:flex flex-none items-center justify-center">
-                  <span className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-xs font-bold text-secondary">
+                <div className="hidden sm:flex flex-none items-end pb-[3px]">
+                  <span className="w-8 h-8 rounded-lg bg-bg border border-border flex items-center justify-center text-xs font-bold text-secondary shadow-sm">
                     {index + 1}
                   </span>
                 </div>
@@ -275,7 +275,7 @@ export default function PurchaseForm() {
                   </div>
                 </div>
 
-                <div className="flex items-end pb-xs">
+                <div className="flex items-end pb-[3px]">
                   {rows.length > 1 && (
                     <button 
                       type="button" 
@@ -283,8 +283,9 @@ export default function PurchaseForm() {
                       onClick={() => removeRow(row.tempId)}
                       disabled={isSubmitting}
                       title="Remove Row"
+                      style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={18} />
                     </button>
                   )}
                 </div>
