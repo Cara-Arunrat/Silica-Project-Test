@@ -161,8 +161,7 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
 
   const addRecord = async (fields) => {
     const metadata = {
-      active: true,
-      created_at: new Date().toISOString()
+      active: true
     };
     
     let currentFields = { ...fields, ...metadata };
@@ -177,17 +176,16 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
         fetchData();
         return formattedRecord;
       } catch (err) {
-        // Handle "Unknown field name" for optional metadata
-        if (err.message && err.message.includes('Unknown field name')) {
-          const match = err.message.match(/Unknown field name: "(.*)"/);
-          const fieldName = match ? match[1] : null;
+        // Handle "Unknown field name" or "cannot accept the provided value" (computed fields)
+        if (err.message && (err.message.includes('Unknown field name') || err.message.includes('cannot accept the provided value'))) {
+          const match = err.message.match(/Field "(.*)"/i) || err.message.match(/Unknown field name: "(.*)"/);
+          const fieldName = match ? (match[1] || match[2]) : null;
 
           if (fieldName) {
-            console.warn(`[Airtable Master] Stripping unknown field: ${fieldName}`);
+            console.warn(`[Airtable Master] Stripping problematic field: ${fieldName}`);
             const newFields = { ...currentFields };
             delete newFields[fieldName];
             
-            // Also try to find and delete the original key if it was normalized
             const originalKey = Object.keys(newFields).find(k => {
               const kNorm = k.toLowerCase().replace(/_/g, ' ');
               const fNorm = fieldName.toLowerCase().replace(/_/g, ' ');
@@ -217,11 +215,12 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
         setData(prev => prev.map(item => item._id === id ? formattedRecord : item));
         return formattedRecord;
       } catch (err) {
-        if (err.message && err.message.includes('Unknown field name')) {
-          const match = err.message.match(/Unknown field name: "(.*)"/);
-          const fieldName = match ? match[1] : null;
+        if (err.message && (err.message.includes('Unknown field name') || err.message.includes('cannot accept the provided value'))) {
+          const match = err.message.match(/Field "(.*)"/i) || err.message.match(/Unknown field name: "(.*)"/);
+          const fieldName = match ? (match[1] || match[2]) : null;
+          
           if (fieldName) {
-            console.warn(`[Airtable Master Update] Stripping unknown field: ${fieldName}`);
+            console.warn(`[Airtable Master Update] Stripping problematic field: ${fieldName}`);
             const newFields = { ...currentFields };
             delete newFields[fieldName];
             const originalKey = Object.keys(newFields).find(k => {
@@ -365,9 +364,9 @@ export const useTransactions = (tableName) => {
         fetchData(); // Sync formula/system fields
         return formattedRecord;
       } catch (err) {
-        // 1. Handle "computed field" error - extract field name and retry without it
-        if (err.message && err.message.includes('field is computed')) {
-          const match = err.message.match(/Field "(.*)" cannot accept/);
+        // 1. Handle "computed field" or read-only error - extract field name and retry without it
+        if (err.message && (err.message.includes('field is computed') || err.message.includes('cannot accept the provided value'))) {
+          const match = err.message.match(/Field "(.*)"/i);
           const fieldName = match ? match[1] : null;
           
           if (fieldName) {
