@@ -198,6 +198,18 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
 };
 
 // Specialized hook for fetching transactions
+
+// Helpers to persist created_by across page navigations (localStorage)
+const CREATED_BY_KEY = 'silica_created_by_map';
+const getCreatedByMap = () => {
+  try { return JSON.parse(localStorage.getItem(CREATED_BY_KEY) || '{}'); } catch { return {}; }
+};
+const setCreatedByMap = (id, name) => {
+  const map = getCreatedByMap();
+  map[id] = name;
+  localStorage.setItem(CREATED_BY_KEY, JSON.stringify(map));
+};
+
 export const useTransactions = (tableName) => {
   const { user } = useAuth();
   const [data, setData] = useState([]);
@@ -209,11 +221,24 @@ export const useTransactions = (tableName) => {
     try {
       const records = await base(tableName).select().all();
       
-      const formattedData = records.map(record => ({
-        _id: record.id,
-        _createdTime: record.createdTime || record._rawJson?.createdTime,
-        ...record.fields
-      }));
+      const formattedData = records.map(record => {
+        const fields = record.fields;
+        // Extract created_by from various possible field names
+        const cbKey = findKey(Object.keys(fields), 'created by') || 
+                      findKey(Object.keys(fields), 'created_by') ||
+                      findKey(Object.keys(fields), 'author');
+        let createdByVal = cbKey ? fields[cbKey] : null;
+        if (createdByVal && typeof createdByVal === 'object') {
+          createdByVal = createdByVal.name || createdByVal.email || createdByVal.id || JSON.stringify(createdByVal);
+        }
+        
+        return {
+          _id: record.id,
+          _createdTime: record.createdTime || record._rawJson?.createdTime,
+          _createdBy: createdByVal || '',
+          ...fields
+        };
+      });
 
       // Sort by common date field names
       formattedData.sort((a, b) => {
@@ -226,7 +251,14 @@ export const useTransactions = (tableName) => {
         return String(getVal(b)).localeCompare(String(getVal(a)));
       });
       
-      setData(formattedData);
+      // Merge locally-known _createdBy from localStorage (survives page navigations)
+      const cbMap = getCreatedByMap();
+      const finalData = formattedData.map(item => ({
+        ...item,
+        _createdBy: item._createdBy || cbMap[item._id] || ''
+      }));
+      
+      setData(finalData);
       setError(null);
     } catch (err) {
       console.error(`Error fetching ${tableName}:`, err);
@@ -249,6 +281,7 @@ export const useTransactions = (tableName) => {
       created_at: new Date().toISOString(),
       created_by: user?.username || user?.id
     };
+    const createdByName = user?.username || user?.id || '';
     let currentFields = { ...inputFields, ...metadata };
     
     // Recursive attempt function to handle computed or missing fields
@@ -257,7 +290,10 @@ export const useTransactions = (tableName) => {
         const payload = normalizeFields(fieldsToSubmit, data, tableName);
         console.log(`[Airtable Add] ${tableName} Final Payload:`, JSON.stringify(payload, null, 2));
         const newRecord = await base(tableName).create([{ fields: payload }]);
-        const formattedRecord = { _id: newRecord[0].id, ...newRecord[0].fields };
+        // Persist in localStorage so it survives page navigations
+        setCreatedByMap(newRecord[0].id, createdByName);
+        // Always inject _createdBy so history table can display it even if Airtable stripped the field
+        const formattedRecord = { _id: newRecord[0].id, _createdBy: createdByName, ...newRecord[0].fields };
         setData(prev => [formattedRecord, ...prev]);
         fetchData(); // Sync formula/system fields
         return formattedRecord;

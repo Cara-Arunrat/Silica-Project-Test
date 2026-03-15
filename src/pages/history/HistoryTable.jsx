@@ -149,7 +149,7 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
                   };
 
                   const createdAt = safeGet('created at') || safeGet('timestamp') || safeGet('created time') || record._createdTime;
-                  let createdBy = safeGet('created by') || safeGet('author') || safeGet('user') || safeGet('by');
+                  let createdBy = safeGet('created by') || safeGet('author') || record._createdBy || '';
 
                   if (createdBy && typeof createdBy === 'object') {
                     createdBy = createdBy.name || createdBy.email || createdBy.id || JSON.stringify(createdBy);
