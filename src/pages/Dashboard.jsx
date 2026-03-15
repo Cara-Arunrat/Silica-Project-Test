@@ -25,14 +25,14 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
   return (
     <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" 
          style={{ padding: window.innerWidth < 480 ? '16px' : '24px' }}>
-      {/* Status Badge - Refined 12px Typography */}
+      {/* Status Badge - Ultra-compact 10px Typography */}
       {status && (
         <div className={`absolute text-white uppercase tracking-widest font-black rounded-lg shadow-sm ${status === 'warning' ? 'bg-orange' : 'bg-success'}`} 
              style={{ 
                top: window.innerWidth < 480 ? '10px' : '15px', 
                right: window.innerWidth < 480 ? '10px' : '15px',
-               fontSize: '12px',
-               padding: window.innerWidth < 480 ? '4px 10px' : '6px 16px',
+               fontSize: '10px',
+               padding: '4px 12px',
                zIndex: 10
              }}>
           {status}
@@ -56,7 +56,7 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
         
         <div className="mt-auto" style={{ width: '100%' }}>
           {/* Value (-1px) and Unit (12px) */}
-          <div className="flex items-baseline mb-1" style={{ gap: '4px' }}>
+          <div className="flex items-baseline mb-2" style={{ gap: '4px' }}>
             <span className="font-black text-slate-900 tracking-tighter" 
                   style={{ 
                     lineHeight: 1, 
@@ -65,9 +65,9 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
             <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
           </div>
           
-          {/* Trend - 12px on its own line */}
+          {/* Trend - 12px on its own line - Increased Spacing */}
           {trend !== undefined && (
-            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '12px' }}>
+            <div className={`flex items-center font-bold mt-1 ${trendColor}`} style={{ fontSize: '12px' }}>
               <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
               <span style={{ lineHeight: 1 }}>{Math.abs(parseFloat(trend)).toFixed(0)}%</span>
             </div>
