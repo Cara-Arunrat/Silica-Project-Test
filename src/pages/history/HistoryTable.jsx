@@ -42,6 +42,22 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
       });
     }
 
+    // Always sort by latest first (descending)
+    if (result && result.length > 0) {
+      result = [...result].sort((a, b) => {
+        const getVal = (obj) => {
+          const k = findKey(Object.keys(obj), 'purchase_date') || 
+                    findKey(Object.keys(obj), 'purchase date') ||
+                    findKey(Object.keys(obj), 'date') || 
+                    findKey(Object.keys(obj), 'month') || 
+                    findKey(Object.keys(obj), 'submitted date') ||
+                    findKey(Object.keys(obj), 'created_at');
+          return k ? obj[k] : (obj._createdTime || '');
+        };
+        return String(getVal(b)).localeCompare(String(getVal(a)));
+      });
+    }
+
     return result;
   }, [data, dateRange, filterRecord]);
 

@@ -256,15 +256,20 @@ export const useTransactions = (tableName) => {
         };
       });
 
-      // Sort by common date field names
+      // Sort by common date field names, falling back to system creation time
       formattedData.sort((a, b) => {
         const getVal = (obj) => {
-          const k = findKey(Object.keys(obj), 'date') || 
+          const k = findKey(Object.keys(obj), 'purchase_date') || 
+                    findKey(Object.keys(obj), 'purchase date') ||
+                    findKey(Object.keys(obj), 'date') || 
                     findKey(Object.keys(obj), 'month') || 
                     findKey(Object.keys(obj), 'created_at');
-          return k ? obj[k] : '';
+          return k ? obj[k] : (obj._createdTime || '');
         };
-        return String(getVal(b)).localeCompare(String(getVal(a)));
+        const valA = String(getVal(a));
+        const valB = String(getVal(b));
+        // Primary sort by date/time descending
+        return valB.localeCompare(valA);
       });
       
       // Merge locally-known _createdBy from localStorage (survives page navigations)
