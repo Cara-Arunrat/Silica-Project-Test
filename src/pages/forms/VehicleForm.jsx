@@ -77,7 +77,7 @@ export default function VehicleForm() {
           <div className="form-group">
             <label className="form-label">Vehicle Type</label>
             <div className="flex flex-wrap gap-sm mt-xs">
-              {['10 Wheeler', '6 Wheeler', '4 Wheeler'].map(type => (
+              {['รถพ่วง/เทรลเล่อ', 'แบคโฮ', 'รถตัก'].map(type => (
                 <label key={type} className="flex items-center gap-xs cursor-pointer group">
                   <input 
                     type="radio"
