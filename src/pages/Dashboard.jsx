@@ -56,13 +56,13 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
         
         <div className="mt-auto" style={{ width: '100%' }}>
           {/* Value (-1px) and Unit (12px) */}
-          <div className="flex items-end mb-2" style={{ gap: '4px' }}>
+          <div className="flex items-baseline mb-2" style={{ gap: '4px' }}>
             <span className="font-black text-slate-900 tracking-tighter" 
                   style={{ 
-                    lineHeight: 1, 
+                    lineHeight: '1', 
                     fontSize: window.innerWidth < 480 ? '23px' : '29px' 
                   }}>{value}</span>
-            <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: 1.1 }}>{unit}</span>
+            <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: '1' }}>{unit}</span>
           </div>
           
           {/* Trend - 12px on its own line - Increased Spacing */}
