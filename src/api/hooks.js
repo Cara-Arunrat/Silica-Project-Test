@@ -160,36 +160,83 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
   }, [fetchData]);
 
   const addRecord = async (fields) => {
-    try {
-      const metadata = {
-        active: true,
-        created_at: new Date().toISOString()
-        // removed created_by from here to avoid system field conflicts; 
-        // form components can pass it explicitly if they have a dedicated text field for it.
-      };
-      const payload = normalizeFields({ ...fields, ...metadata }, data, tableName);
-      console.log(`[Airtable Add Master] ${tableName} Final Payload:`, JSON.stringify(payload, null, 2));
-      const newRecord = await base(tableName).create([{ fields: payload }]);
-      const formattedRecord = { _id: newRecord[0].id, ...newRecord[0].fields };
-      setData(prev => [formattedRecord, ...prev]);
-      fetchData(); // Sync formula/system fields
-      return formattedRecord;
-    } catch (err) {
-      console.error(`Error adding to ${tableName}:`, err);
-      throw err;
+    const metadata = {
+      active: true,
+      created_at: new Date().toISOString()
+    };
+    
+    let currentFields = { ...fields, ...metadata };
+    
+    // Attempt save with retries for unknown fields
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const payload = normalizeFields(currentFields, data, tableName);
+        const newRecord = await base(tableName).create([{ fields: payload }]);
+        const formattedRecord = { _id: newRecord[0].id, ...newRecord[0].fields };
+        setData(prev => [formattedRecord, ...prev]);
+        fetchData();
+        return formattedRecord;
+      } catch (err) {
+        // Handle "Unknown field name" for optional metadata
+        if (err.message && err.message.includes('Unknown field name')) {
+          const match = err.message.match(/Unknown field name: "(.*)"/);
+          const fieldName = match ? match[1] : null;
+
+          if (fieldName) {
+            console.warn(`[Airtable Master] Stripping unknown field: ${fieldName}`);
+            const newFields = { ...currentFields };
+            delete newFields[fieldName];
+            
+            // Also try to find and delete the original key if it was normalized
+            const originalKey = Object.keys(newFields).find(k => {
+              const kNorm = k.toLowerCase().replace(/_/g, ' ');
+              const fNorm = fieldName.toLowerCase().replace(/_/g, ' ');
+              return kNorm === fNorm;
+            });
+            if (originalKey) delete newFields[originalKey];
+            
+            currentFields = newFields;
+            continue; // Retry
+          }
+        }
+        
+        console.error(`Error adding to ${tableName} (Attempt ${attempt}):`, err);
+        throw err;
+      }
     }
   };
 
   const updateRecord = async (id, fields) => {
-    try {
-      const payload = normalizeFields(fields, data);
-      const updatedRecord = await base(tableName).update([{ id, fields: payload }]);
-      const formattedRecord = { _id: updatedRecord[0].id, ...updatedRecord[0].fields };
-      setData(prev => prev.map(item => item._id === id ? formattedRecord : item));
-      return formattedRecord;
-    } catch (err) {
-      console.error(`Error updating ${tableName}:`, err);
-      throw err;
+    let currentFields = { ...fields };
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const payload = normalizeFields(currentFields, data, tableName);
+        const updatedRecord = await base(tableName).update([{ id, fields: payload }]);
+        const formattedRecord = { _id: updatedRecord[0].id, ...updatedRecord[0].fields };
+        setData(prev => prev.map(item => item._id === id ? formattedRecord : item));
+        return formattedRecord;
+      } catch (err) {
+        if (err.message && err.message.includes('Unknown field name')) {
+          const match = err.message.match(/Unknown field name: "(.*)"/);
+          const fieldName = match ? match[1] : null;
+          if (fieldName) {
+            console.warn(`[Airtable Master Update] Stripping unknown field: ${fieldName}`);
+            const newFields = { ...currentFields };
+            delete newFields[fieldName];
+            const originalKey = Object.keys(newFields).find(k => {
+              const kNorm = k.toLowerCase().replace(/_/g, ' ');
+              const fNorm = fieldName.toLowerCase().replace(/_/g, ' ');
+              return kNorm === fNorm;
+            });
+            if (originalKey) delete newFields[originalKey];
+            currentFields = newFields;
+            continue;
+          }
+        }
+        console.error(`Error updating ${tableName} (Attempt ${attempt}):`, err);
+        throw err;
+      }
     }
   };
 
