@@ -54,9 +54,9 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
         {/* Lighter Gray Title - 12px & Unbolded */}
         <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: '12px', fontWeight: 400 }}>{title}</p>
         
-        <div className="flex items-baseline justify-between mt-auto flex-wrap gap-xs" style={{ width: '100%' }}>
+        <div className="mt-auto" style={{ width: '100%' }}>
           {/* Value (-1px) and Unit (12px) */}
-          <div style={{ display: 'flex', alignItems: 'baseline', whiteSpace: 'nowrap', gap: '4px' }}>
+          <div className="flex items-baseline mb-1" style={{ gap: '4px' }}>
             <span className="font-black text-slate-900 tracking-tighter" 
                   style={{ 
                     lineHeight: 1, 
@@ -65,7 +65,7 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
             <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: 1 }}>{unit}</span>
           </div>
           
-          {/* Trend - 12px */}
+          {/* Trend - 12px on its own line */}
           {trend !== undefined && (
             <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '12px' }}>
               <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
