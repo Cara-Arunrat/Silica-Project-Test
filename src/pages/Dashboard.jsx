@@ -322,9 +322,9 @@ export default function Dashboard() {
 
   const getProgressColor = (percent) => {
     const p = parseFloat(percent);
-    if (p < 50) return { text: 'text-warning', bg: 'bg-warning', label: 'Low' };
-    if (p < 80) return { text: 'text-success', bg: 'bg-success', label: 'Medium' };
-    return { text: 'text-primary', bg: 'bg-primary', label: 'Success' };
+    if (p < 50) return { text: 'text-warning', bg: 'bg-warning' };
+    if (p < 80) return { text: 'text-success', bg: 'bg-success' };
+    return { text: 'text-primary', bg: 'bg-primary' };
   };
 
   return (
@@ -461,19 +461,15 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Monthly Progress</p>
-                        <p className={`text-4xl font-black ${colors.text}`} style={{ lineHeight: 1 }}>
-                          {cp.progress}<span className="text-sm ml-[2px]">%</span>
+                        <p className={`text-5xl font-black ${colors.text}`} style={{ lineHeight: 1, letterSpacing: '-0.05em' }}>
+                          {cp.progress}<span className="text-xl ml-[2px]">%</span>
                         </p>
                         <p className="text-[10px] text-secondary mt-xs font-medium">Goal: {cp.target} t</p>
                       </div>
                     </div>
                     
-                    <div className="space-y-sm">
-                      <div className="flex justify-between items-center mb-xs">
-                         <span className="text-[10px] font-bold text-secondary uppercase tracking-tight">Efficiency Track</span>
-                         <span className={`text-[10px] font-black uppercase ${colors.text}`}>{colors.label} status</span>
-                      </div>
-                      <div className="h-5 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+                    <div className="mt-md">
+                      <div className="h-6 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
                         <div 
                           className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bg} shadow-sm`}
                           style={{ width: `${Math.min(parseFloat(cp.progress), 100)}%` }}
