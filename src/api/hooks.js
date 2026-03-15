@@ -312,5 +312,16 @@ export const useTransactions = (tableName) => {
     return attempt(currentFields);
   };
 
-  return { data, loading, error, refetch: fetchData, addRecord };
+  const deleteRecord = async (id) => {
+    try {
+      await base(tableName).destroy([id]);
+      setData(prev => prev.filter(item => item._id !== id));
+      return id;
+    } catch (err) {
+      console.error(`Error deleting from ${tableName}:`, err);
+      throw err;
+    }
+  };
+
+  return { data, loading, error, refetch: fetchData, addRecord, deleteRecord };
 };
