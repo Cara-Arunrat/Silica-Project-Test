@@ -423,7 +423,7 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-center mb-xl flex-wrap gap-md">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Silica Intelligence Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">SAPTECH Dashboard</h1>
           <p className="text-secondary mt-xs">Operational visibility and efficiency metrics.</p>
         </div>
         
