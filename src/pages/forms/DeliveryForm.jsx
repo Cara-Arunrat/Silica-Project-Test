@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTransactions } from '../../api/hooks';
 import { TABLE_NAMES } from '../../api/airtable';
-import MasterDataSelect from '../../components/MasterDataSelect';
+import MasterDataSelectionGrid from '../../components/MasterDataSelectionGrid';
 import ConfirmationModal from '../../components/ConfirmationModal';
 
 export default function DeliveryForm() {
@@ -52,7 +52,7 @@ export default function DeliveryForm() {
         date: formData.date,
         customer_id: [formData.customer_id],
         product_grade_id: [formData.product_grade_id],
-        vehicle_id: [formData.vehicle_id],
+        vehicle: selectedLabels.vehicle, // Send as string to match text field in Airtable
         driver_id: [formData.driver_id],
         net_weight_kg: parseFloat(formData.net_weight_kg),
         delivery_certificate_no: formData.delivery_certificate_no,
@@ -131,29 +131,28 @@ export default function DeliveryForm() {
           </div>
         </div>
 
-        <div className="grid-2-col gap-md">
-          <MasterDataSelect
-            label="Customer"
-            tableName={TABLE_NAMES.CUSTOMERS}
-            value={formData.customer_id}
-            onChange={(val) => setFormData({ ...formData, customer_id: val })}
-            onSelectLabel={(label) => setSelectedLabels(p => ({ ...p, customer: label }))}
-            required
-            disabled={isSubmitting}
-          />
-          <MasterDataSelect
-            label="Product Grade"
-            tableName={TABLE_NAMES.PRODUCT_GRADES}
-            value={formData.product_grade_id}
-            onChange={(val) => setFormData({ ...formData, product_grade_id: val })}
-            onSelectLabel={(label) => setSelectedLabels(p => ({ ...p, product: label }))}
-            required
-            disabled={isSubmitting}
-          />
-        </div>
+        <MasterDataSelectionGrid
+          label="Customer"
+          tableName={TABLE_NAMES.CUSTOMERS}
+          value={formData.customer_id}
+          onChange={(val) => setFormData({ ...formData, customer_id: val })}
+          onSelectLabel={(label) => setSelectedLabels(p => ({ ...p, customer: label }))}
+          required
+          disabled={isSubmitting}
+        />
+
+        <MasterDataSelectionGrid
+          label="Product Grade"
+          tableName={TABLE_NAMES.PRODUCT_GRADES}
+          value={formData.product_grade_id}
+          onChange={(val) => setFormData({ ...formData, product_grade_id: val })}
+          onSelectLabel={(label) => setSelectedLabels(p => ({ ...p, product: label }))}
+          required
+          disabled={isSubmitting}
+        />
 
         <div className="grid-2-col gap-md">
-          <MasterDataSelect
+          <MasterDataSelectionGrid
             label="Vehicle"
             tableName={TABLE_NAMES.VEHICLES}
             value={formData.vehicle_id}
@@ -163,10 +162,10 @@ export default function DeliveryForm() {
             disabled={isSubmitting}
             filterFn={(item) => {
               const type = item.vehicle_type || item.Vehicle_Type || item.vehicle_Type || '';
-              return String(type).toLowerCase().trim() === 'truck & trailer';
+              return String(type).trim() === 'รถพ่วง/เทรลเล่อ';
             }}
           />
-          <MasterDataSelect
+          <MasterDataSelectionGrid
             label="Driver"
             tableName={TABLE_NAMES.DRIVERS}
             value={formData.driver_id}

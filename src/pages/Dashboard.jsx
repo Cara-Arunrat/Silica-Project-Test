@@ -55,14 +55,18 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
         <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: '12px', fontWeight: 400 }}>{title}</p>
         
         <div className="mt-auto" style={{ width: '100%' }}>
-          {/* Value (-1px) and Unit (12px) */}
-          <div className="flex items-baseline mb-2" style={{ gap: '4px' }}>
+          <div className="flex items-start mb-2" style={{ gap: '4px' }}>
             <span className="font-black text-slate-900 tracking-tighter" 
                   style={{ 
                     lineHeight: '1', 
-                    fontSize: window.innerWidth < 480 ? '23px' : '29px' 
+                    fontSize: window.innerWidth < 480 ? '24px' : '32px' 
                   }}>{value}</span>
-            <span className="text-secondary" style={{ fontSize: '12px', fontWeight: 400, lineHeight: '1' }}>{unit}</span>
+            <span className="text-secondary" style={{ 
+              fontSize: '12px', 
+              fontWeight: 400, 
+              lineHeight: '1', 
+              marginTop: window.innerWidth < 480 ? '12px' : '17px' 
+            }}>{unit}</span>
           </div>
           
           {/* Trend - 12px on its own line - Increased Spacing */}
