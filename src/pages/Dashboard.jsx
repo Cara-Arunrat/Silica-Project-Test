@@ -184,7 +184,7 @@ export default function Dashboard() {
     const fGasoline = (gasoline || []).filter(g => inRange(getDate(g)));
 
     // --- 1. Range KPI Metrics ---
-    const purchasedInPeriod = fPurchases.reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0);
+    const purchasedInPeriod = fPurchases.reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchased'), 0);
     const deliveredInPeriod = fDeliveries.reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
     const fuelUsedInPeriod = fGasoline.reduce((sum, item) => sum + (parseFloat(safeGet(item, 'fuel_used_liters')) || 0), 0);
     
@@ -284,7 +284,7 @@ export default function Dashboard() {
 
     const lossTrendData = months.map(m => {
       const pTons = (purchases || []).filter(p => (getDate(p) || '').startsWith(m))
-                             .reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0);
+                             .reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchased'), 0);
       const dTons = (deliveries || []).filter(d => (getDate(d) || '').startsWith(m))
                              .reduce((sum, item) => sum + getTons(item, 'net_weight_kg', 'tons_delivered'), 0);
       const loss = pTons - dTons;
@@ -358,7 +358,7 @@ export default function Dashboard() {
     const purchaseTrendData = yearMonths.map(m => ({
       month: m,
       tons: parseFloat((purchases || []).filter(p => (getDate(p) || '').startsWith(m))
-                                .reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchase'), 0).toFixed(1))
+                                .reduce((sum, item) => sum + getTons(item, 'kg_purchase', 'tons_purchased'), 0).toFixed(1))
     }));
 
     // --- 5. Deliveries by Customer (Redundant - Replaced by customerPerformance) ---
@@ -448,49 +448,55 @@ export default function Dashboard() {
   return (
     <div className="dashboard-v2 pb-xl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-xl flex-wrap gap-md">
+      <div className="flex justify-between items-end mb-lg flex-wrap gap-md">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">SAPTECH Dashboard</h1>
-          <p className="text-secondary mt-xs">Operational visibility and efficiency metrics.</p>
+          <h1 className="text-3xl font-bold mb-xs">SAPTECH Dashboard</h1>
+          <p className="text-secondary">Operational visibility and efficiency metrics.</p>
         </div>
         
         <div className="flex items-center gap-md flex-wrap">
           <div className="form-group mb-0">
-            <select 
-              className="form-control" 
-              value={rangeType} 
+            <select
+              className="form-control"
+              value={rangeType}
               onChange={(e) => handleRangeChange(e.target.value)}
-              style={{ padding: '8px 12px', minWidth: '160px', height: '42px' }}
+              style={{ padding: '8px 12px', minWidth: '180px', height: '42px', boxSizing: 'border-box' }}
             >
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-              <option value="2025">Year 2025</option>
-              <option value="all">All-time</option>
+              <option value="month">This Calendar Month</option>
+              <option value="year">This Calendar Year</option>
+              <option value="2025">Last Year (2025)</option>
+              <option value="all">All Time</option>
               <option value="custom">Custom Range</option>
             </select>
           </div>
 
           {rangeType === 'custom' && (
-            <div className="card flex items-center gap-sm" style={{ padding: '4px 12px', margin: 0, border: '1px solid var(--border-color)', height: '42px' }}>
-              <input 
-                type="date" 
-                className="form-control text-xs" 
-                style={{ padding: '2px 4px', border: 'none', background: 'transparent', width: '120px' }}
-                value={dateRange.start}
-                onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
-              />
-              <span className="text-secondary">-</span>
-              <input 
-                type="date" 
-                className="form-control text-xs" 
-                style={{ padding: '2px 4px', border: 'none', background: 'transparent', width: '120px' }}
-                value={dateRange.end}
-                onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
-              />
+            <div className="card p-sm flex items-center gap-sm" style={{ padding: '8px 16px', margin: 0, border: '1px solid var(--primary-color)', height: '42px', boxSizing: 'border-box' }}>
+              <div className="flex items-center gap-xs">
+                <label className="text-xs font-medium text-secondary">From:</label>
+                <input
+                  type="date"
+                  className="form-control text-sm"
+                  style={{ padding: '4px 8px', minHeight: 'auto' }}
+                  value={dateRange?.start || ''}
+                  onChange={e => setDateRange(p => ({ ...p, start: e.target.value }))}
+                />
+              </div>
+              <div className="text-secondary text-sm">-</div>
+              <div className="flex items-center gap-xs">
+                <label className="text-xs font-medium text-secondary">To:</label>
+                <input
+                  type="date"
+                  className="form-control text-sm"
+                  style={{ padding: '4px 8px', minHeight: 'auto' }}
+                  value={dateRange?.end || ''}
+                  onChange={e => setDateRange(p => ({ ...p, end: e.target.value }))}
+                />
+              </div>
             </div>
           )}
 
-          <div className="flex items-center gap-sm bg-surface p-xs px-md rounded-lg border border-border h-[42px]">
+          <div className="flex items-center gap-sm bg-surface p-xs px-md rounded-lg border border-border" style={{ height: '42px' }}>
             <Calendar size={16} className="text-primary" />
             <span className="text-sm font-medium">
               {rangeType === 'month' ? new Date().toLocaleString('default', { month: 'long', year: 'numeric' }) : 

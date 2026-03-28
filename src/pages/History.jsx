@@ -78,11 +78,11 @@ export default function HistoryPage() {
       if (match) {
         // Special field logic
         if (tableName === TABLE_NAMES.RAW_MATERIALS) {
-          return match.product_code || match.Name || match.material_name || id;
+          return match.product_name || match.product_code || match.Name || match.material_name || id;
         }
 
         // Try to find any field that looks like a name/text
-        return match.name || match.Name || match.product_code || match.username || match.text || 
+        return match.product_name || match.name || match.Name || match.product_code || match.username || match.text || 
                match[Object.keys(match).find(k => k.toLowerCase().includes('name'))] || 
                match[Object.keys(match).find(k => k.toLowerCase().includes('label'))] || id;
       }
@@ -222,9 +222,9 @@ export default function HistoryPage() {
                 <>
                   <td>{get('purchase_date') || get('purchase date') || get('date') || '-'}</td>
                   <td>{getName(get('supplier') || get('Supplier'), suppliers, loadSuppliers)}</td>
-                  <td>{getName(get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS)}</td>
+                  <td>{getName(get('product_code') || get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS)}</td>
                   <td className="font-medium">
-                    {get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-'}
+                    {get('tons_purchased') || get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-'}
                   </td>
                   <td>{get('Price') || get('price') || get('price_per_unit') || '-'}</td>
                   <td className="font-bold text-primary">{get('Total_Cost') || get('total_cost') || get('total cost') || '-'}</td>
@@ -233,8 +233,8 @@ export default function HistoryPage() {
               onExport={(get) => ({
                 'Date': get('purchase_date') || get('purchase date') || get('date'),
                 'Supplier': getName(get('supplier') || get('Supplier'), suppliers, loadSuppliers),
-                'Material': getName(get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS),
-                'Purchase (tons)': get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-',
+                'Material': getName(get('product_code') || get('raw material') || get('raw_material') || get('Raw_Materials'), materials, loadMaterials, TABLE_NAMES.RAW_MATERIALS),
+                'Purchase (tons)': get('tons_purchased') || get('tons_purchase') || get('tons_puchase') || get('tons purchase') || '-',
                 'Price per unit': get('Price') || get('price') || '-',
                 'Total Cost': get('Total_Cost') || get('total_cost') || '-',
                 'Notes': get('notes') || '-'
