@@ -16,11 +16,11 @@ export const TABLE_NAMES = {
   VEHICLES: 'Vehicles',
   DRIVERS: 'Drivers',
   PRODUCT_GRADES: 'Product_Grades',
-  PURCHASES: 'Purchase',
-  DELIVERIES: 'Delivery',
-  GASOLINE: 'Gasoline',
+  PURCHASES: 'Purchases',
+  DELIVERIES: 'Deliveries',
+  GASOLINE: 'Gasoline_Vehicle_Logs',
   PRODUCTION: 'Production_Records',
   PLAN: 'Monthly_Plan',
-  GASOLINE_PURCHASES: 'Gasoline_purchase',
+  GASOLINE_PURCHASES: 'Gasoline_Tank_Logs',
   RAW_MATERIALS: 'Raw_Materials'
 };

@@ -159,7 +159,11 @@ export default function Dashboard() {
       try {
         const dt = new Date(d);
         if (isNaN(dt.getTime())) return null;
-        return dt.toISOString().split('T')[0];
+        // Use local date components (YYYY-MM-DD) to avoid timezone/UTC shifting
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const day = String(dt.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
       } catch (e) {
         return null;
       }
@@ -204,8 +208,31 @@ export default function Dashboard() {
       : [currentMonthStr];
 
     const periodPlans = (plans || []).filter(p => {
-      const m = safeGet(p, 'month') || '';
-      return activeRangeMonths.includes(m.substring(0, 7));
+      // Prioritize 'period' field as it's a robust YYYY-MM-DD date
+      const periodVal = safeGet(p, 'period') || '';
+      if (periodVal && periodVal.includes('-')) {
+        return activeRangeMonths.includes(periodVal.substring(0, 7));
+      }
+      
+      // Fallback: parse formatted strings from 'month' field
+      const monthVal = safeGet(p, 'month') || '';
+      let comparisonMonth = '';
+      
+      if (monthVal.includes('/')) {
+        const [mm, yyyy] = monthVal.split('/');
+        comparisonMonth = `${yyyy}-${mm.padStart(2, '0')}`;
+      } else if (monthVal.includes('-')) {
+        comparisonMonth = monthVal.substring(0, 7);
+      } else if (monthVal.trim().length > 0) {
+        // Handle "March 2026"
+        try {
+          const d = new Date(monthVal);
+          if (!isNaN(d.getTime())) {
+            comparisonMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          }
+        } catch (e) {}
+      }
+      return activeRangeMonths.includes(comparisonMonth);
     });
     
     // Group Targets by Customer (sum multiple months if range > 1 month)

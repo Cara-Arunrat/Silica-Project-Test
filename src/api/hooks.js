@@ -71,8 +71,14 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'net_weight_kg': 'net_weight_kg',
         'delivery_certificate_no': 'delivery_certificate_no',
         'weighing_sequence_no': 'weighing_sequence_no',
-        'tons_purchase': 'tons_purchase',
-        'tons_puchase': 'tons_purchase',
+        'tons_purchased': 'tons_purchased',
+        'tons_purchase': 'tons_purchased',
+        'tons_puchase': 'tons_purchased',
+        'fuel_price_per_liter': 'fuel_price_per_liter',
+        'price_per_unit': 'fuel_price_per_liter',
+        'gas_price': 'fuel_price_per_liter',
+        'created_by': 'created_by',
+        'created_at': 'created_at',
         'kg_purchase': 'kg_purchase',
         'vehicle_id': 'Vehicle',
         'driver_id': 'Driver',
@@ -82,7 +88,6 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'meter_start': 'Meter Start',
         'meter_end': 'Meter End',
         'fuel_used': 'Fuel Used',
-        'created_by': 'created_by',
         'vehicle_name': 'vehicle_name',
         'vehicle_type': 'vehicle_type',
         'truck_plate': 'truck_plate',
@@ -90,7 +95,6 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'purchase_date': 'purchase_date',
         'fuel_liters': 'fuel_liters',
         'material_id': 'raw material',
-        'price_per_unit': 'Price',
         'total_cost': 'Total_Cost',
         'product_code': 'product_code'
       };
@@ -200,10 +204,13 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
         fetchData();
         return formattedRecord;
       } catch (err) {
-        // Handle "Unknown field name" or "cannot accept the provided value" (computed fields)
-        if (err.message && (err.message.includes('Unknown field name') || err.message.includes('cannot accept the provided value'))) {
-          const match = err.message.match(/Field "(.*)"/i) || err.message.match(/Unknown field name: "(.*)"/);
-          const fieldName = match ? (match[1] || match[2]) : null;
+        // Handle "Unknown field name" or "cannot accept the provided value" (computed fields) or parsing errors
+        const isComputed = err.message && (err.message.includes('Unknown field name') || err.message.includes('cannot accept the provided value'));
+        const isParsingError = err.message && err.message.includes('Cannot parse value');
+
+        if (isComputed || isParsingError) {
+          const match = err.message.match(/Field ["']?(.*?)["']? /i) || err.message.match(/field (.*)$/i) || err.message.match(/Unknown field name: "(.*)"/);
+          const fieldName = (match && match[1]) ? (match[1] || match[2]).trim().replace(/['"]/g, '') : null;
 
           if (fieldName) {
             console.warn(`[Airtable Master] Stripping problematic field: ${fieldName}`);
@@ -388,14 +395,19 @@ export const useTransactions = (tableName) => {
         fetchData(); // Sync formula/system fields
         return formattedRecord;
       } catch (err) {
-        // 1. Handle "computed field" or read-only error - extract field name and retry without it
-        if (err.message && (err.message.includes('field is computed') || err.message.includes('cannot accept the provided value'))) {
-          const match = err.message.match(/Field "(.*)"/i);
-          const fieldName = match ? match[1] : null;
+        // 1. Handle computed fields, permission errors, or parsing errors (e.g. sending text to a User field)
+        const isComputed = err.message && (err.message.includes('field is computed') || err.message.includes('cannot accept the provided value'));
+        const isParsingError = err.message && err.message.includes('Cannot parse value');
+        
+        if (isComputed || isParsingError) {
+          // Broadened regex to handle "Field 'Name'", 'Field "Name"', or "field Name"
+          const match = err.message.match(/Field ["']?(.*?)["']? /i) || err.message.match(/field (.*)$/i);
+          const fieldName = match ? match[1].trim().replace(/['"]/g, '') : null;
           
           if (fieldName) {
-            console.warn(`[Airtable] Field "${fieldName}" is computed. Retrying without it.`);
+            console.warn(`[Airtable] Problem with field "${fieldName}". Strip and retry.`);
             const originalKey = Object.keys(fieldsToSubmit).find(k => {
+               // Recalculate what this original key would become in normalized payload
                const p = normalizeFields({ [k]: fieldsToSubmit[k] }, data, tableName);
                return Object.keys(p)[0] === fieldName;
             });

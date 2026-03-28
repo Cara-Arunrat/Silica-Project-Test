@@ -8,7 +8,7 @@ export default function GasolinePurchaseForm() {
   const { user } = useAuth();
   const { addRecord, loading, error } = useTransactions(TABLE_NAMES.GASOLINE_PURCHASES);
   const [formData, setFormData] = useState({
-    purchase_date: new Date().toISOString().split('T')[0],
+    purchase_date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     fuel_liters: '',
     notes: ''
   });
@@ -33,8 +33,11 @@ export default function GasolinePurchaseForm() {
     setSuccess('');
 
     try {
+      // Convert local date/time to UTC string for stable storage
+      const utcDate = new Date(formData.purchase_date).toISOString();
+
       await addRecord({
-        purchase_date: formData.purchase_date,
+        purchase_date: utcDate,
         fuel_liters: parseFloat(formData.fuel_liters),
         notes: formData.notes
       });
@@ -61,12 +64,12 @@ export default function GasolinePurchaseForm() {
         <div className="form-group mb-md">
           <label className="form-label">Gas Arrival Date</label>
           <input
-            type="date"
+            type="datetime-local"
             className="form-control"
             value={formData.purchase_date}
             onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
             required
-            style={{ maxWidth: '200px' }}
+            style={{ maxWidth: '280px' }}
           />
         </div>
 

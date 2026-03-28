@@ -52,7 +52,7 @@ export default function DeliveryForm() {
         date: formData.date,
         customer_id: [formData.customer_id],
         product_grade_id: [formData.product_grade_id],
-        vehicle: selectedLabels.vehicle, // Send as string to match text field in Airtable
+        vehicle_name: [formData.vehicle_id], // Linked record field
         driver_id: [formData.driver_id],
         net_weight_kg: parseFloat(formData.net_weight_kg),
         delivery_certificate_no: formData.delivery_certificate_no,

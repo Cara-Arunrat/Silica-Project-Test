@@ -13,20 +13,29 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
 
     if (dateRange) {
       result = result.filter(record => {
-        const dateKey = findKey(Object.keys(record), 'purchase_date') ||
-                        findKey(Object.keys(record), 'purchase date') ||
-                        findKey(Object.keys(record), 'date') || 
-                        findKey(Object.keys(record), 'month') || 
-                        findKey(Object.keys(record), 'submitted date');
+        const keys = Object.keys(record);
+        const dateKey = findKey(keys, 'period') ||
+                        findKey(keys, 'purchase_date') ||
+                        findKey(keys, 'purchase date') ||
+                        findKey(keys, 'date') || 
+                        findKey(keys, 'month') || 
+                        findKey(keys, 'submitted date');
         
         const recordDateVal = dateKey ? record[dateKey] : record._createdTime;
-        if (!recordDateVal) return true;
+        if (!recordDateVal) return false;
 
-        const d = new Date(recordDateVal);
-        if (isNaN(d)) return true;
-        const iso = d.toISOString().split('T')[0];
-
-        return iso >= dateRange.start && iso <= dateRange.end;
+        try {
+          const d = new Date(recordDateVal);
+          if (isNaN(d.getTime())) return false;
+          // Use local date components to avoid timezone shifting (e.g. UTC-1 shift)
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const iso = `${y}-${m}-${day}`;
+          return iso >= dateRange.start && iso <= dateRange.end;
+        } catch (e) {
+          return false;
+        }
       });
     }
 
@@ -46,7 +55,8 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
     if (result && result.length > 0) {
       result = [...result].sort((a, b) => {
         const getVal = (obj) => {
-          const k = findKey(Object.keys(obj), 'purchase_date') || 
+          const k = findKey(Object.keys(obj), 'period') || 
+                    findKey(Object.keys(obj), 'purchase_date') || 
                     findKey(Object.keys(obj), 'purchase date') ||
                     findKey(Object.keys(obj), 'date') || 
                     findKey(Object.keys(obj), 'month') || 
@@ -54,7 +64,9 @@ export default function HistoryTable({ title, tableName, columns, renderRow, onE
                     findKey(Object.keys(obj), 'created_at');
           return k ? obj[k] : (obj._createdTime || '');
         };
-        return String(getVal(b)).localeCompare(String(getVal(a)));
+        const valA = String(getVal(a));
+        const valB = String(getVal(b));
+        return valB.localeCompare(valA);
       });
     }
 

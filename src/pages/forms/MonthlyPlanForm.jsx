@@ -40,8 +40,16 @@ export default function MonthlyPlanForm() {
     setSuccess('');
     
     try {
+      // Send both 'period' (for logic) and 'month' (for display/compatibility)
+      // Since 'month' is now computed in Airtable, our hook will automatically strip it if it fails
+      const [year, month] = formData.month.split('-');
+      const periodDate = `${year}-${month}-01`;
+      const dateObj = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const displayMonth = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
       await addRecord({
-        month: formData.month,
+        period: periodDate,
+        month: displayMonth,
         customer: [formData.customer_id],
         planned_tons: parseFloat(formData.planned_tons),
         notes: formData.notes

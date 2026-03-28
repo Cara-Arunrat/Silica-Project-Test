@@ -18,6 +18,18 @@ export default function HistoryPage() {
     return { start: `${y}-${m}-01`, end: `${y}-${m}-${String(dLast).padStart(2, '0')}` };
   });
 
+  const formatDate = (val) => {
+    if (!val) return '-';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    // If it's just a date (no time component or exactly midnight), it might just show date.
+    // However, user specifically added time, so we show 24h format.
+    return d.toLocaleString('en-GB', { 
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false 
+    }).replace(',', '');
+  };
+
   const handleRangeChange = (type) => {
     setRangeType(type);
     const today = new Date();
@@ -239,7 +251,7 @@ export default function HistoryPage() {
               users={users}
               renderRow={(row, get) => (
                 <>
-                  <td>{get('date') || get('purchase_date') || get('purchase date')}</td>
+                  <td>{formatDate(get('date') || get('purchase_date'))}</td>
                   <td className="font-bold text-primary">{get('fuel_liters') || get('fuel liters')} L</td>
                 </>
               )}
@@ -267,7 +279,7 @@ export default function HistoryPage() {
                   <td>{get('date')}</td>
                   <td>{getName(get('customer'), customers, loadCustomers)}</td>
                   <td>{getName(get('product grade'), grades, loadGrades)}</td>
-                  <td>{getName(get('vehicle'), trucks, loadTrucks)}</td>
+                  <td>{getName(get('vehicle_name') || get('vehicle'), trucks, loadTrucks)}</td>
                   <td>{getName(get('driver'), drivers, loadDrivers)}</td>
                   <td className="font-medium">{get('net weight')}</td>
                   <td className="text-secondary text-sm">{get('delivery certificate') || '-'}</td>
@@ -278,7 +290,7 @@ export default function HistoryPage() {
                 'Date': get('date'),
                 'Customer Name': getName(get('customer'), customers, loadCustomers),
                 'Product Grade': getName(get('product grade'), grades, loadGrades),
-                'Vehicle Name': getName(get('vehicle'), trucks, loadTrucks),
+                'Vehicle Name': getName(get('vehicle_name') || get('vehicle'), trucks, loadTrucks),
                 'Driver Name': getName(get('driver'), drivers, loadDrivers),
                 'Weight (kg)': get('net weight'),
                 'Cert No.': get('delivery certificate') || '-',
@@ -296,7 +308,7 @@ export default function HistoryPage() {
               users={users}
               renderRow={(row, get) => (
                 <>
-                  <td>{get('date')}</td>
+                  <td>{formatDate(get('date'))}</td>
                   <td>{getName(get('vehicle'), trucks, loadTrucks)}</td>
                   <td>{getName(get('driver'), drivers, loadDrivers)}</td>
                   <td className="font-medium text-primary">{get('fuel used liters') || get('fuel_used_liters') || get('fuel') || '-'}</td>
@@ -341,7 +353,7 @@ export default function HistoryPage() {
             <HistoryTable
               title="Monthly Plan"
               tableName={TABLE_NAMES.PLAN}
-              columns={['Target Month', 'Customer Name', 'Planned Tons', 'Submitted Date']}
+              columns={['Target Month', 'Customer Name', 'Planned Tons']}
               dateRange={dateRange}
               users={users}
               filterRecord={(record, safeGet) => {
@@ -354,14 +366,12 @@ export default function HistoryPage() {
                   <td className="font-medium">{get('month')}</td>
                   <td>{getName(get('customer'), customers, loadCustomers)}</td>
                   <td>{get('planned tons')} t</td>
-                  <td className="text-secondary text-sm">{get('submitted date')}</td>
                 </>
               )}
               onExport={(get) => ({
                 'Target Month': get('month'),
                 'Customer Name': getName(get('customer'), customers, loadCustomers),
-                'Planned Tons': get('planned tons'),
-                'Submitted Date': get('submitted date')
+                'Planned Tons': get('planned tons')
               })}
             />
           )}

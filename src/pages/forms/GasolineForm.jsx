@@ -9,7 +9,7 @@ export default function GasolineForm() {
   const { user } = useAuth();
   const { addRecord, loading, error } = useTransactions(TABLE_NAMES.GASOLINE);
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     vehicle_id: '',
     driver_id: '',
     fuel_used_liters: '',
@@ -43,10 +43,13 @@ export default function GasolineForm() {
     setSuccess('');
 
     try {
+      // Convert local date/time to UTC string for stable Airtable storage
+      const utcDate = new Date(formData.date).toISOString();
+
       await addRecord({
-        date: formData.date,
-        vehicle_id: [formData.vehicle_id],
-        driver_id: [formData.driver_id],
+        date: utcDate,
+        vehicle: selectedLabels.vehicle, // Sending as string (matches your Airtable field type)
+        driver: [formData.driver_id],     // Sending as ID array (Linked Record)
         fuel_used_liters: parseFloat(formData.fuel_used_liters),
         total_price: parseFloat(formData.total_price) || 0,
         notes: formData.notes
@@ -74,12 +77,12 @@ export default function GasolineForm() {
         <div className="form-group mb-md">
           <label className="form-label">Date</label>
           <input
-            type="date"
+            type="datetime-local"
             className="form-control"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             required
-            style={{ maxWidth: '200px' }}
+            style={{ maxWidth: '280px' }}
           />
         </div>
 
