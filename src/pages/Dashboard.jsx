@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useTransactions, findKey, useMasterData } from '../api/hooks';
 import { TABLE_NAMES } from '../api/airtable';
 import { 
@@ -14,9 +14,9 @@ import {
 } from './dashboard/DashboardCharts';
 
 /**
- * KPI Card Component
+ * KPI Card Component - Memoized to prevent unnecessary re-renders
  */
-const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }) => {
+const KPIButton = React.memo(({ title, value, unit, icon: Icon, colorClass, trend, status }) => {
   const isPositive = trend && parseFloat(trend) > 0;
   const isNegative = trend && parseFloat(trend) < 0;
   const trendColor = isPositive ? 'text-success' : isNegative ? 'text-danger' : 'text-slate-400';
@@ -24,13 +24,12 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
 
   return (
     <div className="card group hover:shadow-lg transition-all duration-300 relative overflow-hidden bg-surface flex flex-col justify-between h-full border" 
-         style={{ padding: window.innerWidth < 480 ? '16px' : '24px' }}>
-      {/* Status Badge - Ultra-compact 10px Typography */}
+         style={{ padding: '24px' }}>
       {status && (
         <div className={`absolute text-white uppercase tracking-widest font-black rounded-lg shadow-sm ${status === 'warning' ? 'bg-orange' : 'bg-success'}`} 
              style={{ 
-               top: window.innerWidth < 480 ? '10px' : '15px', 
-               right: window.innerWidth < 480 ? '10px' : '15px',
+               top: '15px', 
+               right: '15px',
                fontSize: '10px',
                padding: '4px 12px',
                zIndex: 10
@@ -40,38 +39,32 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
       )}
 
       <div className="flex flex-col h-full">
-        {/* Larger Square Icon Background */}
         <div className="rounded-xl flex items-center justify-center transition-transform group-hover:rotate-3 duration-500 shadow-sm mb-md lg:mb-lg" 
              style={{ 
-               width: window.innerWidth < 480 ? '42px' : '54px', 
-               height: window.innerWidth < 480 ? '42px' : '54px', 
+               width: '54px', 
+               height: '54px', 
                backgroundColor: 'rgba(var(--primary-rgb), 0.08)',
                flexShrink: 0
              }}>
-          <Icon size={window.innerWidth < 480 ? 20 : 24} className={colorClass} />
+          <Icon size={24} className={colorClass} />
         </div>
         
-        {/* Lighter Gray Title - 12px & Unbolded */}
-        <p className="text-secondary opacity-70 uppercase tracking-widest mb-2" style={{ fontSize: '12px', fontWeight: 400 }}>{title}</p>
+        <p className="text-secondary opacity-70 uppercase tracking-widest" style={{ fontSize: '12px', fontWeight: 400, marginBottom: '6px' }}>{title}</p>
         
         <div className="mt-auto" style={{ width: '100%' }}>
-          <div className="flex items-start mb-2" style={{ gap: '4px' }}>
+          <div className="flex items-start" style={{ gap: '4px', marginBottom: '6px' }}>
             <span className="font-black text-slate-900 tracking-tighter" 
-                  style={{ 
-                    lineHeight: '1', 
-                    fontSize: window.innerWidth < 480 ? '24px' : '32px' 
-                  }}>{value}</span>
+                  style={{ lineHeight: '1', fontSize: '32px' }}>{value}</span>
             <span className="text-secondary" style={{ 
               fontSize: '12px', 
               fontWeight: 400, 
               lineHeight: '1', 
-              marginTop: window.innerWidth < 480 ? '12px' : '17px' 
+              marginTop: '17px' 
             }}>{unit}</span>
           </div>
           
-          {/* Trend - 12px on its own line - Increased Spacing */}
           {trend !== undefined && (
-            <div className={`flex items-center font-bold mt-1 ${trendColor}`} style={{ fontSize: '12px' }}>
+            <div className={`flex items-center font-bold ${trendColor}`} style={{ fontSize: '12px', marginTop: '6px' }}>
               <span style={{ marginRight: '2px', lineHeight: 1 }}>{trendArrow}</span>
               <span style={{ lineHeight: 1 }}>{Math.abs(parseFloat(trend)).toFixed(0)}%</span>
             </div>
@@ -80,7 +73,7 @@ const KPIButton = ({ title, value, unit, icon: Icon, colorClass, trend, status }
       </div>
     </div>
   );
-};
+});
 
 export default function Dashboard() {
   // Data Fetching
@@ -125,15 +118,24 @@ export default function Dashboard() {
   };
 
   // Helper for name resolution
-  const getMasterName = (id, list) => {
+  const getMasterName = useCallback((id, list) => {
     if (!id || !list || !Array.isArray(list)) return '-';
-    // Airtable linked records are often arrays
     const targetId = Array.isArray(id) ? id[0] : id;
     const match = list.find(item => item._id === targetId || item.id === targetId);
     if (!match) return targetId;
     return match.name || match.Name || match.username || match.text || 
            match[Object.keys(match).find(k => k.toLowerCase().includes('name'))] || 
            match[Object.keys(match).find(k => k.toLowerCase().includes('label'))] || targetId;
+  }, []);
+
+  const formatNum = (val, decimals = 1) => {
+    if (val === undefined || val === null) return '0';
+    const n = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(n)) return '0';
+    return n.toLocaleString(undefined, { 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: decimals 
+    });
   };
 
   const dashboardData = useMemo(() => {
@@ -509,11 +511,11 @@ export default function Dashboard() {
 
       {/* SECTION 1: EXECUTIVE SUMMARY */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-md lg:gap-lg mb-xl">
-        <KPIButton title="Raw Material" value={kpis.purchased} unit="tons" icon={Mountain} colorClass="text-primary" trend={trends.purchased} />
-        <KPIButton title="Product Delivered" value={kpis.delivered} unit="tons" icon={Truck} colorClass="text-success" trend={trends.delivered} />
-        <KPIButton title="Silica Loss" value={kpis.loss} unit="tons" icon={TrendingDown} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} trend={trends.loss} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
-        <KPIButton title="Fuel Consumption" value={kpis.fuel} unit="liters" icon={Fuel} colorClass="text-warning" trend={trends.fuel} />
-        <KPIButton title="KPI Progress" value={kpis.progress} unit="%" icon={TrendingUp} colorClass="text-success" trend={trends.progress} status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
+        <KPIButton title="Raw Material" value={formatNum(kpis.purchased)} unit="tons" icon={Mountain} colorClass="text-primary" trend={trends.purchased} />
+        <KPIButton title="Product Delivered" value={formatNum(kpis.delivered)} unit="tons" icon={Truck} colorClass="text-success" trend={trends.delivered} />
+        <KPIButton title="Silica Loss" value={formatNum(kpis.loss)} unit="tons" icon={TrendingDown} colorClass={parseFloat(kpis.loss) > 0 ? "text-warning" : "text-success"} trend={trends.loss} status={getLossStatus((parseFloat(kpis.loss) / (parseFloat(kpis.purchased) || 1)) * 100)} />
+        <KPIButton title="Fuel Consumption" value={formatNum(kpis.fuel, 0)} unit="liters" icon={Fuel} colorClass="text-warning" trend={trends.fuel} />
+        <KPIButton title="KPI Progress" value={formatNum(kpis.progress)} unit="%" icon={TrendingUp} colorClass="text-success" trend={trends.progress} status={parseFloat(kpis.progress) >= 100 ? 'achieved' : 'active'} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-xl mb-xl">
@@ -536,7 +538,7 @@ export default function Dashboard() {
         {/* SECTION 10: OPERATIONAL EFFICIENCY */}
         <div className="card">
           <h3 className="text-lg font-bold mb-lg">Efficiency Analytics (In Range)</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-md md:h-[300px]">
+          <div className="grid grid-cols-2 gap-md md:h-[300px]">
              <div className="flex flex-col items-center justify-center bg-bg rounded-xl p-md text-center border border-border min-h-[140px]">
                 <div className="p-sm bg-primary-light rounded-full mb-md text-primary">
                   <TrendingUp size={32} />
@@ -586,11 +588,11 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-md">
                     <div>
                       <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Total Achieved</p>
-                      <p className={`text-xl font-bold ${summaryColors.text}`}>{kpis.delivered}<span className="text-xs ml-xs font-normal"> tons</span></p>
+                      <p className={`text-xl font-bold ${summaryColors.text}`}>{formatNum(kpis.delivered)}<span className="text-xs ml-xs font-normal"> tons</span></p>
                     </div>
                     <div>
                       <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Overall Target</p>
-                      <p className="text-xl font-bold">{monthlyKPI.toLocaleString()}<span className="text-xs ml-xs font-normal"> tons</span></p>
+                      <p className="text-xl font-bold">{formatNum(monthlyKPI)}<span className="text-xs ml-xs font-normal"> tons</span></p>
                     </div>
                     {/* Fixed Success Colors for Insight Badge */}
                     <div className="bg-success-light text-success p-xs px-sm rounded-lg flex flex-col justify-center border border-success/20 sm:h-fit sm:mt-auto">
@@ -610,41 +612,43 @@ export default function Dashboard() {
             })()}
           </div>
           
-          <div className="grid grid-cols-1 gap-lg">
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(300px, 45%, 500px), 1fr))', 
+            gap: '1.5rem' 
+          }}>
             {customerPerformance.length > 0 ? (
               customerPerformance.map(cp => {
                 const colors = getProgressColor(cp.progress);
                 const remaining = Math.max(0, cp.target - cp.delivered).toFixed(1);
-                return (
-                  <div key={cp.id} className="p-lg bg-bg rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
-                    <div className="flex justify-between items-center mb-md">
+                 return (
+                  <div key={cp.id} className="p-md bg-bg rounded-xl border border-border shadow-sm hover:shadow-md transition-all">
+                    <div className="flex justify-between items-center mb-sm">
                       <div className="flex items-center gap-sm">
-                        {/* Status Accent Bar - Dynamic color from progress */}
-                        <div className={`w-1 h-6 rounded-full ${colors.bg}`}></div>
-                        <h4 className="text-xl font-bold tracking-tight">{cp.name}</h4>
+                        <div className={`w-1 h-5 rounded-full ${colors.bg}`}></div>
+                        <h4 className="text-base font-bold tracking-tight">{cp.name}</h4>
                       </div>
-                      <div className={`text-3xl font-black ${colors.text} tracking-tighter`}>
-                        {cp.progress}<span className="text-sm ml-[2px]">%</span>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-md mb-md py-md border-y border-white/10">
-                      <div>
-                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
-                        {/* Metric Value - Dynamic based on progress */}
-                        <p className={`text-lg font-bold ${colors.text}`}>{cp.delivered}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
-                        <p className={`text-lg font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{remaining}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-secondary font-black uppercase tracking-widest mb-xs">Target</p>
-                        <p className="text-lg font-bold">{cp.target}<span className="text-[10px] ml-xs font-normal"> tons</span></p>
+                      <div className={`text-2xl font-black ${colors.text} tracking-tighter`}>
+                        {cp.progress}<span className="text-xs ml-[1px]">%</span>
                       </div>
                     </div>
                     
-                    <div className="h-3 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[2px]">
+                    <div className="grid grid-cols-3 gap-xs mb-sm py-sm border-y border-white/10">
+                      <div>
+                        <p className="text-[9px] text-secondary font-black uppercase tracking-widest mb-xs">Achieved</p>
+                        <p className={`text-sm font-bold ${colors.text}`}>{formatNum(cp.delivered)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-secondary font-black uppercase tracking-widest mb-xs">Remaining</p>
+                        <p className={`text-sm font-bold ${parseFloat(remaining) > 0 ? 'text-secondary' : 'text-success'}`}>{formatNum(remaining)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-secondary font-black uppercase tracking-widest mb-xs">Target</p>
+                        <p className="text-sm font-bold">{formatNum(cp.target)}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="h-2 bg-surface rounded-full overflow-hidden border border-border shadow-inner p-[1px]">
                       <div 
                         className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bg} shadow-sm`}
                         style={{ width: `${Math.min(parseFloat(cp.progress), 100)}%` }}
@@ -703,7 +707,7 @@ export default function Dashboard() {
           <div className="flex flex-col gap-md">
             <div className="bg-bg p-md rounded-lg flex justify-between items-center">
               <span className="text-sm font-medium text-secondary">Total Delivered</span>
-              <span className="text-lg font-bold text-success">{kpis.delivered} t</span>
+              <span className="text-lg font-bold text-success">{formatNum(kpis.delivered)} t</span>
             </div>
             <div className="bg-bg p-md rounded-lg flex justify-between items-center">
               <span className="text-sm font-medium text-secondary">Active Contracts</span>

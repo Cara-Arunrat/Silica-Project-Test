@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { base, TABLE_NAMES } from './airtable';
 import { useAuth } from '../context/AuthContext';
 
@@ -117,11 +117,12 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const dataFingerprintRef = useRef('');
+  const hasFetchedRef = useRef(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    if (!dataFingerprintRef.current) setLoading(true);
     try {
-      // Remove strict server-side formula constraints to prevent field missing errors
       const records = await base(tableName).select().all();
       
       let formattedData = records.map(record => {
@@ -142,10 +143,8 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
         };
       });
 
-      // Robust client-side filtering and structuring based on variations
       if (filterActiveOnly) {
          formattedData = formattedData.filter(item => {
-           // If 'active' column doesn't exist at all, we assume it's valid to show (optional field)
            const keys = Object.keys(item);
            const activeKey = findKey(keys, 'active');
            if (!activeKey) return true;
@@ -154,32 +153,37 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
          });
       }
 
-      // Robust client-side sort primarily by ID fallback
       formattedData.sort((a, b) => String(b._id).localeCompare(String(a._id)));
       
-      // Merge locally-known _createdBy from localStorage
       const cbMap = getCreatedByMap();
       const finalData = formattedData.map(item => ({
         ...item,
         _createdBy: item._createdBy || cbMap[item._id] || ''
       }));
 
-      setData(finalData);
-      setError(null);
+      // Build a robust fingerprint that includes IDs and key field values
+      const fingerprint = JSON.stringify(finalData.map(d => d._id));
+      if (fingerprint !== dataFingerprintRef.current) {
+        dataFingerprintRef.current = fingerprint;
+        setData(finalData);
+      }
+      setError(prev => prev === null ? prev : null);
     } catch (err) {
       console.error(`Error fetching ${tableName}:`, err);
-      if (err.statusCode === 403 || err.message.includes('NOT_FOUND') || err.message.includes('not authorized')) {
-        setError(`Table "${tableName}" is missing or token lacks access to it.`);
-      } else {
-        setError(err.message);
-      }
+      const msg = (err.statusCode === 403 || err.message.includes('NOT_FOUND') || err.message.includes('not authorized'))
+        ? `Table "${tableName}" is missing or token lacks access to it.`
+        : err.message;
+      setError(prev => prev === msg ? prev : msg);
     } finally {
-      setLoading(false);
+      setLoading(prev => prev === false ? prev : false);
     }
   }, [tableName, filterActiveOnly]);
 
   useEffect(() => {
-    fetchData();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchData();
+    }
   }, [fetchData]);
 
   const addRecord = async (fields) => {
@@ -308,15 +312,16 @@ export const useTransactions = (tableName) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const dataFingerprintRef = useRef('');
+  const hasFetchedRef = useRef(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    if (!dataFingerprintRef.current) setLoading(true);
     try {
       const records = await base(tableName).select().all();
       
       const formattedData = records.map(record => {
         const fields = record.fields;
-        // Extract created_by from various possible field names
         const cbKey = findKey(Object.keys(fields), 'created by') || 
                       findKey(Object.keys(fields), 'created_by') ||
                       findKey(Object.keys(fields), 'author');
@@ -333,7 +338,6 @@ export const useTransactions = (tableName) => {
         };
       });
 
-      // Sort by common date field names, falling back to system creation time
       formattedData.sort((a, b) => {
         const getVal = (obj) => {
           const k = findKey(Object.keys(obj), 'purchase_date') || 
@@ -343,35 +347,38 @@ export const useTransactions = (tableName) => {
                     findKey(Object.keys(obj), 'created_at');
           return k ? obj[k] : (obj._createdTime || '');
         };
-        const valA = String(getVal(a));
-        const valB = String(getVal(b));
-        // Primary sort by date/time descending
-        return valB.localeCompare(valA);
+        return String(getVal(b)).localeCompare(String(getVal(a)));
       });
       
-      // Merge locally-known _createdBy from localStorage (survives page navigations)
       const cbMap = getCreatedByMap();
       const finalData = formattedData.map(item => ({
         ...item,
         _createdBy: item._createdBy || cbMap[item._id] || ''
       }));
       
-      setData(finalData);
-      setError(null);
+      // Only update state if data actually changed
+      const fingerprint = JSON.stringify(finalData.map(d => d._id));
+      if (fingerprint !== dataFingerprintRef.current) {
+        dataFingerprintRef.current = fingerprint;
+        setData(finalData);
+      }
+      setError(prev => prev === null ? prev : null);
     } catch (err) {
       console.error(`Error fetching ${tableName}:`, err);
-      if (err.statusCode === 403 || err.message.includes('NOT_FOUND') || err.message.includes('not authorized')) {
-        setError(`Table "${tableName}" is missing or token lacks access to it.`);
-      } else {
-        setError(err.message);
-      }
+      const msg = (err.statusCode === 403 || err.message.includes('NOT_FOUND') || err.message.includes('not authorized'))
+        ? `Table "${tableName}" is missing or token lacks access to it.`
+        : err.message;
+      setError(prev => prev === msg ? prev : msg);
     } finally {
-      setLoading(false);
+      setLoading(prev => prev === false ? prev : false);
     }
   }, [tableName]);
 
   useEffect(() => {
-    fetchData();
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      fetchData();
+    }
   }, [fetchData]);
 
   const addRecord = async (inputFields) => {

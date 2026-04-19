@@ -8,9 +8,12 @@ import {
 import { findKey } from '../../api/hooks';
 
 const VAT_RATE = 0.07;
+const TODAY = new Date();
+const TODAY_STR = TODAY.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const DEFAULT_HALF = TODAY.getDate() <= 15 ? 'H1' : 'H2';
 
 const SandDeliveredTab = forwardRef(({ deliveries, customers, productGrades, drivers, vehicles, resolveName, selectedMonth, selectedYear, period }, ref) => {
-  const [halfPeriod, setHalfPeriod] = useState('H1'); // H1 = 1st-15th, H2 = 16th-End
+  const [halfPeriod, setHalfPeriod] = useState(DEFAULT_HALF);
   const [activeCustomerTab, setActiveCustomerTab] = useState(null);
   const [gradePrices, setGradePrices] = useState({});
   const [selectedGradeId, setSelectedGradeId] = useState('');
@@ -131,21 +134,22 @@ const SandDeliveredTab = forwardRef(({ deliveries, customers, productGrades, dri
     { accessorKey: 'gradeName', header: 'Product Grade', cell: info => <span className="font-medium">{info.getValue()}</span> },
     { accessorKey: 'totalTons', header: 'Total Tons', cell: info => info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
     {
-      accessorKey: 'price',
+      id: 'priceInput',
       header: 'Price/Ton (฿)',
       cell: ({ row }) => (
         <input
           type="number"
           className="form-control"
-          value={gradePrices[row.original.gradeId] || ''}
-          onChange={e => handlePriceChange(row.original.gradeId, e.target.value)}
+          defaultValue={row.original.price === 0 ? '' : row.original.price}
+          onBlur={e => setGradePrices(prev => ({ ...prev, [row.original.gradeId]: parseFloat(e.target.value) || 0 }))}
+          onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
           placeholder="Enter price"
           style={{ width: '140px', padding: '6px 10px', minHeight: 'auto' }}
         />
       ),
     },
     { accessorKey: 'subtotal', header: 'Grade Subtotal (฿)', cell: info => `฿${info.getValue().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
-  ], [gradePrices]);
+  ], []);
 
   const [sorting, setSorting] = useState([]);
   const table = useReactTable({
@@ -217,38 +221,50 @@ const SandDeliveredTab = forwardRef(({ deliveries, customers, productGrades, dri
 
   return (
     <div>
-      {/* Period Toggle */}
-      <div className="flex gap-sm mb-md">
-        <button
-          className={`btn ${halfPeriod === 'H1' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setHalfPeriod('H1')}
-          style={{ borderRadius: '20px', padding: '8px 20px' }}
-        >
-          1st – 15th
-        </button>
-        <button
-          className={`btn ${halfPeriod === 'H2' ? 'btn-primary' : 'btn-outline'}`}
-          onClick={() => setHalfPeriod('H2')}
-          style={{ borderRadius: '20px', padding: '8px 20px' }}
-        >
-          16th – End
-        </button>
-      </div>
+      {/* Control Bar: Today + Billing Range + Customer Pills */}
+      <div className="card mb-lg" style={{ padding: '16px 20px' }}>
+        {/* Row 1: Today's date */}
+        <div className="flex items-center gap-sm mb-sm">
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>📅 Today:</span>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary-color)' }}>{TODAY_STR}</span>
+        </div>
 
-      {/* Customer Pill Tabs */}
-      {tabs.length === 0 ? (
-        <div className="card p-lg text-center text-secondary">No delivery records for this period.</div>
-      ) : (
-        <>
-          <div className="flex gap-xs mb-lg flex-wrap">
+        {/* Row 2: Billing Range + Customer Selector */}
+        <div className="flex items-center gap-md flex-wrap">
+          {/* Billing Range */}
+          <div className="flex items-center gap-xs">
+            <span className="text-sm font-medium text-secondary" style={{ whiteSpace: 'nowrap' }}>Billing Range:</span>
+            <button
+              className={`btn ${halfPeriod === 'H1' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setHalfPeriod('H1')}
+              style={{ borderRadius: '20px', padding: '6px 16px', fontSize: '13px' }}
+            >
+              1st – 15th
+            </button>
+            <button
+              className={`btn ${halfPeriod === 'H2' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setHalfPeriod('H2')}
+              style={{ borderRadius: '20px', padding: '6px 16px', fontSize: '13px' }}
+            >
+              16th – End
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ width: '1px', height: '28px', background: 'var(--border-color)' }} />
+
+          {/* Customer Selector */}
+          <div className="flex items-center gap-xs flex-wrap">
+            <span className="text-sm font-medium text-secondary" style={{ whiteSpace: 'nowrap' }}>Customer:</span>
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveCustomerTab(tab.id)}
                 className="font-medium text-sm"
                 style={{
-                  padding: '8px 18px',
+                  padding: '6px 16px',
                   borderRadius: '20px',
+                  fontSize: '13px',
                   background: activeCustomerTab === tab.id
                     ? (tab.isTmg ? 'var(--primary-color)' : '#6366f1')
                     : 'var(--bg-color)',
@@ -262,6 +278,15 @@ const SandDeliveredTab = forwardRef(({ deliveries, customers, productGrades, dri
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Customer Pill Tabs */}
+      {tabs.length === 0 ? (
+        <div className="card p-lg text-center text-secondary">No delivery records for this period.</div>
+      ) : (
+        <>
+
 
           <div className="mb-md">
             <h3 className="text-lg font-semibold mb-xs">

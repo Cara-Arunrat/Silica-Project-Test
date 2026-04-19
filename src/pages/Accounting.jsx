@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { TABLE_NAMES } from '../api/airtable';
 import { useTransactions, useMasterData, findKey } from '../api/hooks';
 import { Download } from 'lucide-react';
@@ -19,11 +19,14 @@ const MONTHS = [
   'July','August','September','October','November','December'
 ];
 
+const NOW = new Date();
+const INITIAL_MONTH = NOW.getMonth();
+const INITIAL_YEAR = NOW.getFullYear();
+
 export default function Accounting() {
-  const now = new Date();
   const [activeTab, setActiveTab] = useState('purchases');
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(INITIAL_MONTH); // 0-indexed
+  const [selectedYear, setSelectedYear] = useState(INITIAL_YEAR);
   const exportRef = useRef(null);
 
   // ── Data Hooks ──
@@ -39,7 +42,7 @@ export default function Accounting() {
   const isLoading = loadPurchases || loadDeliveries || loadGasoline || loadSuppliers || loadDrivers || loadCustomers || loadGrades;
 
   // ── Helper: resolve name from linked record ──
-  const resolveName = (value, masterList) => {
+  const resolveName = useCallback((value, masterList) => {
     if (!value) return '-';
     const id = Array.isArray(value) ? value[0] : value;
     if (typeof id === 'string' && !id.startsWith('rec')) return id;
@@ -48,10 +51,10 @@ export default function Accounting() {
     const keys = Object.keys(match);
     const nameKey = findKey(keys, 'name') || findKey(keys, 'supplier_name') || findKey(keys, 'customer_name') || findKey(keys, 'driver_name') || keys.find(k => k.toLowerCase().includes('name'));
     return nameKey ? match[nameKey] : id;
-  };
+  }, []);
 
   // ── Period-filtered data (month/year) ──
-  const filterByMonth = (records) => {
+  const filterByMonth = useCallback((records) => {
     return records.filter(r => {
       const keys = Object.keys(r);
       const dateKey = findKey(keys, 'purchase_date') || findKey(keys, 'date') || findKey(keys, 'created_at');
@@ -60,9 +63,9 @@ export default function Accounting() {
       const d = new Date(dateVal);
       return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
-  };
+  }, [selectedMonth, selectedYear]);
 
-  const filterByYear = (records) => {
+  const filterByYear = useCallback((records) => {
     return records.filter(r => {
       const keys = Object.keys(r);
       const dateKey = findKey(keys, 'purchase_date') || findKey(keys, 'date') || findKey(keys, 'created_at');
@@ -71,7 +74,7 @@ export default function Accounting() {
       const d = new Date(dateVal);
       return d.getFullYear() === selectedYear;
     });
-  };
+  }, [selectedYear]);
 
   const monthlyPurchases = useMemo(() => filterByMonth(purchases), [purchases, selectedMonth, selectedYear]);
   const monthlyDeliveries = useMemo(() => filterByMonth(deliveries), [deliveries, selectedMonth, selectedYear]);
@@ -81,18 +84,24 @@ export default function Accounting() {
   const yearlyGasoline = useMemo(() => filterByYear(gasolineLogs), [gasolineLogs, selectedYear]);
 
   // ── Export handler ──
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     if (exportRef.current?.getExportData) {
       const { sheetName, headers, rows } = exportRef.current.getExportData();
       import('../utils/exportAccounting').then(mod => {
         mod.exportToXlsx(sheetName, headers, rows, `Accounting_${activeTab}_${MONTHS[selectedMonth]}_${selectedYear}`);
       });
     }
-  };
+  }, [activeTab, selectedMonth, selectedYear]);
+
+  // ── Memoized period string ──
+  const period = useMemo(() => `${MONTHS[selectedMonth]} ${selectedYear}`, [selectedMonth, selectedYear]);
 
   // ── Year options ──
-  const yearOptions = [];
-  for (let y = now.getFullYear(); y >= 2024; y--) yearOptions.push(y);
+  const yearOptions = useMemo(() => {
+    const opts = [];
+    for (let y = INITIAL_YEAR; y >= 2024; y--) opts.push(y);
+    return opts;
+  }, []);
 
   return (
     <div className="accounting-page pb-xl">
@@ -167,7 +176,7 @@ export default function Accounting() {
               purchases={monthlyPurchases}
               suppliers={suppliers}
               resolveName={resolveName}
-              period={`${MONTHS[selectedMonth]} ${selectedYear}`}
+              period={period}
             />
           )}
           {activeTab === 'sand' && (
@@ -181,7 +190,7 @@ export default function Accounting() {
               resolveName={resolveName}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
-              period={`${MONTHS[selectedMonth]} ${selectedYear}`}
+              period={period}
             />
           )}
           {activeTab === 'driver' && (
@@ -198,7 +207,7 @@ export default function Accounting() {
               resolveName={resolveName}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
-              period={`${MONTHS[selectedMonth]} ${selectedYear}`}
+              period={period}
             />
           )}
           {activeTab === 'yearly' && (

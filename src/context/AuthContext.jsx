@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { base, TABLE_NAMES } from '../api/airtable';
 
 const AuthContext = createContext();
@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
+  const login = useCallback(async (username, password) => {
     setLoading(true);
     setError('');
     try {
@@ -59,21 +59,21 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return false;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('silica_auth_user');
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     login,
     logout,
     loading,
     error,
     setError
-  };
+  }), [user, loading, error, login, logout]);
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
