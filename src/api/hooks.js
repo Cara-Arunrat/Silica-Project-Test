@@ -2,6 +2,54 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { base, TABLE_NAMES } from './airtable';
 import { useAuth } from '../context/AuthContext';
 
+// ── Safe Airtable wrapper ──────────────────────────────────────────────────
+// The Airtable SDK can silently hang (never resolve/reject) on billing-limit
+// or network errors. This helper enforces a 15 s timeout and converts any
+// `{ errors: [...] }` response into a proper thrown JS Error.
+const withTimeout = (promise, ms = 15000) => {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Airtable request timed out after 15 s')), ms)
+  );
+  return Promise.race([promise, timeout]);
+};
+
+const safeCreate = async (tableName, payload) => {
+  const result = await withTimeout(base(tableName).create([{ fields: payload }]));
+  // SDK sometimes resolves with an errors array instead of rejecting
+  if (result && result.errors && result.errors.length > 0) {
+    const msg = result.errors[0].message || result.errors[0].error || JSON.stringify(result.errors[0]);
+    throw new Error(msg);
+  }
+  return result;
+};
+
+const safeSelectAll = async (tableName) => {
+  const result = await withTimeout(base(tableName).select().all(), 20000);
+  if (result && result.errors && result.errors.length > 0) {
+    const msg = result.errors[0].message || result.errors[0].error || JSON.stringify(result.errors[0]);
+    throw new Error(msg);
+  }
+  return result;
+};
+
+const safeUpdate = async (tableName, id, payload) => {
+  const result = await withTimeout(base(tableName).update([{ id, fields: payload }]));
+  if (result && result.errors && result.errors.length > 0) {
+    const msg = result.errors[0].message || result.errors[0].error || JSON.stringify(result.errors[0]);
+    throw new Error(msg);
+  }
+  return result;
+};
+
+const safeDestroy = async (tableName, id) => {
+  const result = await withTimeout(base(tableName).destroy([id]));
+  if (result && result.errors && result.errors.length > 0) {
+    const msg = result.errors[0].message || result.errors[0].error || JSON.stringify(result.errors[0]);
+    throw new Error(msg);
+  }
+  return result;
+};
+
 export const findKey = (keys, searchKey) => {
   if (!keys || keys.length === 0) return null;
   
@@ -60,7 +108,8 @@ const normalizeFields = (inputFields, existingData, tableName) => {
     if (key.startsWith('_')) return;
 
     const matchingKey = findKey(existingKeys, key);
-    if (matchingKey) {
+    // Explicitly reject keys that look like Airtable lookup fields (computed)
+    if (matchingKey && !matchingKey.toLowerCase().includes('(from')) {
       finalFields[matchingKey] = inputFields[key];
     } else {
       // Fallback mappings if no clue from existing data
@@ -94,8 +143,7 @@ const normalizeFields = (inputFields, existingData, tableName) => {
         'trailer_plate': 'trailer_plate',
         'purchase_date': 'purchase_date',
         'fuel_liters': 'fuel_liters',
-        'material_id': 'raw material',
-        'total_cost': 'Total_Cost',
+        'material_id': 'product_code',
         'product_code': 'product_code'
       };
       
@@ -123,7 +171,7 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
   const fetchData = useCallback(async () => {
     if (!dataFingerprintRef.current) setLoading(true);
     try {
-      const records = await base(tableName).select().all();
+      const records = await safeSelectAll(tableName);
       
       let formattedData = records.map(record => {
         const fields = record.fields;
@@ -197,7 +245,7 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const payload = normalizeFields(currentFields, data, tableName);
-        const newRecord = await base(tableName).create([{ fields: payload }]);
+        const newRecord = await safeCreate(tableName, payload);
         
         // Track authorship locally
         const createdByName = user?.username || user?.id || '';
@@ -245,7 +293,7 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const payload = normalizeFields(currentFields, data, tableName);
-        const updatedRecord = await base(tableName).update([{ id, fields: payload }]);
+        const updatedRecord = await safeUpdate(tableName, id, payload);
         const formattedRecord = { _id: updatedRecord[0].id, ...updatedRecord[0].fields };
         setData(prev => prev.map(item => item._id === id ? formattedRecord : item));
         return formattedRecord;
@@ -282,7 +330,7 @@ export const useMasterData = (tableName, filterActiveOnly = false) => {
 
   const deleteRecord = async (id) => {
     try {
-      await base(tableName).destroy([id]);
+      await safeDestroy(tableName, id);
       setData(prev => prev.filter(item => item._id !== id));
       return id;
     } catch (err) {
@@ -318,7 +366,7 @@ export const useTransactions = (tableName) => {
   const fetchData = useCallback(async () => {
     if (!dataFingerprintRef.current) setLoading(true);
     try {
-      const records = await base(tableName).select().all();
+      const records = await safeSelectAll(tableName);
       
       const formattedData = records.map(record => {
         const fields = record.fields;
@@ -393,7 +441,7 @@ export const useTransactions = (tableName) => {
       try {
         const payload = normalizeFields(fieldsToSubmit, data, tableName);
         console.log(`[Airtable Add] ${tableName} Final Payload:`, JSON.stringify(payload, null, 2));
-        const newRecord = await base(tableName).create([{ fields: payload }]);
+        const newRecord = await safeCreate(tableName, payload);
         // Persist in localStorage so it survives page navigations
         setCreatedByMap(newRecord[0].id, createdByName);
         // Always inject _createdBy so history table can display it even if Airtable stripped the field
@@ -431,7 +479,7 @@ export const useTransactions = (tableName) => {
           const fieldName = match ? match[1] : null;
 
           // Only auto-strip metadata-like fields to avoid losing important data
-          const optionalBases = ['created', 'updated', 'by', 'note', 'timestamp', 'id'];
+          const optionalBases = ['created', 'updated', 'by', 'note', 'timestamp', 'id', 'price', 'cost'];
           const isOptional = fieldName && optionalBases.some(b => fieldName.toLowerCase().includes(b));
 
           if (fieldName && isOptional) {
@@ -457,9 +505,48 @@ export const useTransactions = (tableName) => {
     return attempt(currentFields);
   };
 
+  const updateRecord = async (id, fields) => {
+    let currentFields = { ...fields };
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const payload = normalizeFields(currentFields, data, tableName);
+        console.log(`[Airtable Update] ${tableName} Payload:`, JSON.stringify(payload, null, 2));
+        const updated = await safeUpdate(tableName, id, payload);
+        const formattedRecord = { _id: updated[0].id, ...updated[0].fields };
+        setData(prev => prev.map(item => item._id === id ? { ...item, ...formattedRecord } : item));
+        fetchData(); // Re-sync so formula/lookup fields refresh too
+        return formattedRecord;
+      } catch (err) {
+        const isComputed = err.message && (
+          err.message.includes('Unknown field name') ||
+          err.message.includes('cannot accept the provided value') ||
+          err.message.includes('field is computed')
+        );
+        if (isComputed) {
+          const match = err.message.match(/Unknown field name: "(.*)"/) ||
+                        err.message.match(/Field [\"'](.*?)[\"'] /i);
+          const fieldName = match ? match[1] : null;
+          if (fieldName) {
+            console.warn(`[Airtable Update] Stripping field: ${fieldName}`);
+            const newFields = { ...currentFields };
+            delete newFields[fieldName];
+            const originalKey = Object.keys(newFields).find(k =>
+              k.toLowerCase().replace(/_/g, ' ') === fieldName.toLowerCase().replace(/_/g, ' ')
+            );
+            if (originalKey) delete newFields[originalKey];
+            currentFields = newFields;
+            continue;
+          }
+        }
+        console.error(`Error updating ${tableName} (attempt ${attempt}):`, err);
+        throw err;
+      }
+    }
+  };
+
   const deleteRecord = async (id) => {
     try {
-      await base(tableName).destroy([id]);
+      await safeDestroy(tableName, id);
       setData(prev => prev.filter(item => item._id !== id));
       return id;
     } catch (err) {
@@ -468,5 +555,5 @@ export const useTransactions = (tableName) => {
     }
   };
 
-  return { data, loading, error, refetch: fetchData, addRecord, deleteRecord };
+  return { data, loading, error, refetch: fetchData, addRecord, updateRecord, deleteRecord };
 };

@@ -12,6 +12,7 @@ import {
   FuelComparisonChart, 
   HorizontalMetricChart 
 } from './dashboard/DashboardCharts';
+import CertReminderDashboard from './dashboard/CertReminderDashboard';
 
 /**
  * KPI Card Component - Memoized to prevent unnecessary re-renders
@@ -715,6 +716,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* SECTION: PERMIT & CERTIFICATE MONITOR */}
+      <div className="card" style={{ marginTop: '2rem' }}>
+        <CertReminderDashboard />
       </div>
 
       <style>{`

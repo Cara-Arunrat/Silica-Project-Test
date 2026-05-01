@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, FileInput, History, Database, Calculator, LogOut, Menu } from 'lucide-react';
+import { Home, FileInput, History, Database, Calculator, LogOut, Menu, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './AppShell.css';
 
@@ -9,6 +9,7 @@ import Inputs from '../pages/Inputs';
 import HistoryPage from '../pages/History';
 import MasterData from '../pages/MasterData';
 import Accounting from '../pages/Accounting';
+import Inputs2 from '../pages/Inputs2';
 
 const SidebarLink = ({ to, icon: Icon, label }) => {
   const location = useLocation();
@@ -35,8 +36,11 @@ const Navigation = ({ isMobileOpen }) => {
       
       <ul className="sidebar-nav">
         <SidebarLink to="/" icon={Home} label="Dashboard" />
-        {user?.role === 'admin' && (
+        {(user?.role === 'admin' || user?.role === 'manager') && (
           <SidebarLink to="/inputs" icon={FileInput} label="Inputs" />
+        )}
+        {user?.role === 'manager' && (
+          <SidebarLink to="/inputs2" icon={ClipboardList} label="Inputs 2" />
         )}
         <SidebarLink to="/history" icon={History} label="History" />
         {user?.role === 'manager' && (
@@ -103,6 +107,7 @@ export default function AppShell() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/inputs/*" element={<Inputs />} />
+            <Route path="/inputs2/*" element={<Inputs2 />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/accounting" element={<Accounting />} />
             <Route path="/master/*" element={<MasterData />} />

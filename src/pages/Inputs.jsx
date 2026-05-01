@@ -10,14 +10,27 @@ import PurchaseForm from './forms/PurchaseForm';
 import DeliveryForm from './forms/DeliveryForm';
 import GasolineForm from './forms/GasolineForm';
 import GasolinePurchaseForm from './forms/GasolinePurchaseForm';
-import MonthlyPlanForm from './forms/MonthlyPlanForm';
+// import MonthlyPlanForm from './forms/MonthlyPlanForm';
 import VehicleForm from './forms/VehicleForm';
+
+const PlaceholderTab = ({ label }) => (
+  <div className="placeholder-tab flex flex-col items-center justify-center text-center p-xl opacity-50 min-h-[300px]">
+    <div className="mb-md">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/>
+        <path d="M9 9h6M9 12h6M9 15h4"/>
+      </svg>
+    </div>
+    <h3 className="text-xl font-bold mb-xs">{label}</h3>
+    <p className="text-secondary text-sm">This module is under development.</p>
+  </div>
+);
 
 export default function Inputs() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('purchase');
 
-  if (user?.role !== 'admin') {
+  if (user?.role !== 'admin' && user?.role !== 'manager') {
     return <Navigate to="/" replace />;
   }
 
@@ -26,7 +39,7 @@ export default function Inputs() {
     { id: 'delivery', label: 'Deliveries' },
     { id: 'gas_purchase', label: 'Gasoline Purchase' },
     { id: 'gasoline', label: 'Gasoline Usage' },
-    { id: 'plan', label: 'Monthly Plans' },
+    { id: 'sieve', label: 'Test Sieve' },
     { id: 'vehicle', label: 'Vehicles' },
   ];
 
@@ -59,7 +72,7 @@ export default function Inputs() {
           {activeTab === 'delivery' && <DeliveryForm />}
           {activeTab === 'gas_purchase' && <GasolinePurchaseForm />}
           {activeTab === 'gasoline' && <GasolineForm />}
-          {activeTab === 'plan' && <MonthlyPlanForm />}
+          {activeTab === 'sieve' && <PlaceholderTab label="Test Sieve" />}
           {activeTab === 'vehicle' && <VehicleForm />}
         </div>
       </div>

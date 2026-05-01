@@ -22,5 +22,7 @@ export const TABLE_NAMES = {
   PRODUCTION: 'Production_Records',
   PLAN: 'Monthly_Plan',
   GASOLINE_PURCHASES: 'Gasoline_Tank_Logs',
-  RAW_MATERIALS: 'Raw_Materials'
+  RAW_MATERIALS: 'Raw_Materials',
+  CERT_REMINDER: 'Cert_Reminder',
+  TEST_SIEVE: 'Test_sieve'
 };

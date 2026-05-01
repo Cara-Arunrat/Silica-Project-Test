@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import HistoryTable from './history/HistoryTable';
+import CertReminderTab from './history/CertReminderTab';
 import { TABLE_NAMES } from '../api/airtable';
 import { useMasterData } from '../api/hooks';
 
@@ -97,7 +98,8 @@ export default function HistoryPage() {
     { id: 'gas_purchase', label: 'Gasoline Purchase' },
     { id: 'gasoline', label: 'Gasoline Usage' },
     { id: 'plan', label: 'Monthly Plans' },
-    { id: 'vehicle', label: 'Vehicles' }
+    { id: 'vehicle', label: 'Vehicles' },
+    { id: 'cert_reminder', label: 'Cert. Reminder' }
   ];
 
   return (
@@ -374,6 +376,10 @@ export default function HistoryPage() {
                 'Planned Tons': get('planned tons')
               })}
             />
+          )}
+
+          {activeTab === 'cert_reminder' && (
+            <CertReminderTab users={users} />
           )}
         </div>
       </div>
