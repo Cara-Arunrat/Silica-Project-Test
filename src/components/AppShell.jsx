@@ -1,6 +1,6 @@
 import React from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Home, FileInput, History, Database, Calculator, LogOut, Menu, ClipboardList } from 'lucide-react';
+import { Home, FileInput, History, Database, Calculator, LogOut, Menu, ClipboardList, FlaskConical } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './AppShell.css';
 
@@ -10,6 +10,7 @@ import HistoryPage from '../pages/History';
 import MasterData from '../pages/MasterData';
 import Accounting from '../pages/Accounting';
 import Inputs2 from '../pages/Inputs2';
+import TestSieveResult from '../pages/TestSieveResult';
 
 const SidebarLink = ({ to, icon: Icon, label }) => {
   const location = useLocation();
@@ -39,7 +40,7 @@ const Navigation = ({ isMobileOpen }) => {
         {(user?.role === 'admin' || user?.role === 'manager') && (
           <SidebarLink to="/inputs" icon={FileInput} label="Inputs" />
         )}
-        {user?.role === 'manager' && (
+        {(user?.role === 'manager' || user?.role === 'admin') && (
           <SidebarLink to="/inputs2" icon={ClipboardList} label="Inputs 2" />
         )}
         <SidebarLink to="/history" icon={History} label="History" />
@@ -47,6 +48,7 @@ const Navigation = ({ isMobileOpen }) => {
           <>
             <SidebarLink to="/accounting" icon={Calculator} label="Accounting" />
             <SidebarLink to="/master" icon={Database} label="Master Data" />
+            <SidebarLink to="/sieve-results" icon={FlaskConical} label="Test Sieve Result" />
           </>
         )}
       </ul>
@@ -108,6 +110,7 @@ export default function AppShell() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/inputs/*" element={<Inputs />} />
             <Route path="/inputs2/*" element={<Inputs2 />} />
+            <Route path="/sieve-results" element={<TestSieveResult />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/accounting" element={<Accounting />} />
             <Route path="/master/*" element={<MasterData />} />

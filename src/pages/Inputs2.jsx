@@ -25,8 +25,8 @@ export default function Inputs2() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('cert_reminder');
 
-  // Manager-only access
-  if (user?.role !== 'manager') {
+  // Manager and Admin access
+  if (user?.role !== 'manager' && user?.role !== 'admin') {
     return <Navigate to="/" replace />;
   }
 

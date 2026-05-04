@@ -22,12 +22,9 @@ const MESH_CONFIG = [
 ];
 
 const SAND_TYPES = [
-  'Silica Sand',
-  'Chromite Sand',
-  'Zircon Sand',
-  'Olivine Sand',
-  'Resin Coated Sand',
-  'Other',
+  'ทรายดิบ',
+  'ทรายแห้ง',
+  'ทรายแก้ว',
 ];
 
 // ──────────────────────────────────────────────
@@ -132,9 +129,9 @@ export default function TestSieveForm() {
     try {
       // Build payload: header + each mesh value + calculated results
       const payload = {
-        Sand_Name: form.sand_name.trim(),
-        Sand_Type: form.sand_type,
-        Test_Date: form.test_date,
+        sand_name: form.sand_name.trim(),
+        sand_type: form.sand_type,
+        test_date: form.test_date,
       };
 
       // Add each mesh gram value (only non-empty)
@@ -143,7 +140,7 @@ export default function TestSieveForm() {
         if (raw !== '' && raw !== null && raw !== undefined) {
           const num = parseFloat(raw);
           if (!isNaN(num) && num > 0) {
-            payload[`Mesh_${mesh}`] = num;
+            payload[`m${mesh}`] = num;
           }
         }
       });
@@ -151,12 +148,8 @@ export default function TestSieveForm() {
       // Add calculated fields
       if (results.afs !== null) {
         payload.AFS = results.afs;
-        payload.Avg_Weighted = results.avgWeighted;
-        payload.Total_Weight = results.totalWeight;
+        payload.Avg_weighted = results.avgWeighted;
       }
-
-      payload.created_by = user?.username || user?.name || 'manager';
-      payload.created_at = new Date().toISOString();
 
       await addRecord(payload);
 

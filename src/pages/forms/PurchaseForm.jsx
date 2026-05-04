@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTransactions, useMasterData } from '../../api/hooks';
 import { TABLE_NAMES } from '../../api/airtable';
 import MasterDataSelect from '../../components/MasterDataSelect';
+import MasterDataSelectionGrid from '../../components/MasterDataSelectionGrid';
 import ConfirmationModal from '../../components/ConfirmationModal';
 import { Plus, Trash2, Calculator } from 'lucide-react';
 
@@ -172,7 +173,7 @@ export default function PurchaseForm() {
               </div>
 
               <MasterDataSelect 
-                label="Select Raw Material"
+                label="Raw Material"
                 tableName={TABLE_NAMES.RAW_MATERIALS}
                 value={header.material_id}
                 onChange={handleMaterialChange}
@@ -188,38 +189,15 @@ export default function PurchaseForm() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label mb-sm">Supplier Selection</label>
-              {suppliersLoading ? (
-                <div className="text-secondary text-sm animate-pulse">Loading suppliers...</div>
-              ) : (
-                <div className="flex flex-wrap gap-sm">
-                  {suppliers.map(s => (
-                    <label key={s._id} className="cursor-pointer group">
-                      <input 
-                        type="radio"
-                        name="supplier"
-                        className="hidden"
-                        value={s._id}
-                        checked={header.supplier_id === s._id}
-                        onChange={() => {
-                          setHeader({ ...header, supplier_id: s._id });
-                          setSelectedLabels({ ...selectedLabels, supplier: s.supplier_name || s.Name });
-                        }}
-                        disabled={isSubmitting}
-                      />
-                      <div className={`px-lg py-sm rounded-lg border transition-all duration-200 ${
-                        header.supplier_id === s._id 
-                          ? 'bg-primary text-white border-primary shadow-md transform scale-105' 
-                          : 'bg-surface text-secondary border-border hover:border-primary-light hover:bg-bg-light'
-                      } font-medium text-sm`}>
-                        {s.supplier_name || s.Name}
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+            <MasterDataSelectionGrid
+              label="Supplier"
+              tableName={TABLE_NAMES.SUPPLIERS}
+              value={header.supplier_id}
+              onChange={(val) => setHeader({ ...header, supplier_id: val })}
+              onSelectLabel={(label) => setSelectedLabels(p => ({ ...p, supplier: label }))}
+              required
+              disabled={isSubmitting}
+            />
           </div>
         </div>
 

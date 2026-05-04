@@ -39,3 +39,5 @@ This file contains a growing ruleset that improves over time. **At session start
 
 1. [STYLE] Never use dark theme — user preference, only light mode allowed.
 2. [STYLE] Always address the user as "Beautiful Cara" — user preference.
+3. [UX] Labels for `MasterDataSelect` should not start with 'Select' — the component automatically adds the 'Select' prefix to the default option.
+4. [DATA] Always match Airtable field names exactly in the frontend payload (e.g., 'm18' instead of 'Mesh_18', 'Avg_weighted' instead of 'Avg_Weighted') and NEVER attempt to write to computed/formula fields (e.g., AFS, Avg_weighted) — this causes 422 errors.

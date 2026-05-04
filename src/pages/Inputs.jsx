@@ -39,7 +39,6 @@ export default function Inputs() {
     { id: 'delivery', label: 'Deliveries' },
     { id: 'gas_purchase', label: 'Gasoline Purchase' },
     { id: 'gasoline', label: 'Gasoline Usage' },
-    { id: 'sieve', label: 'Test Sieve' },
     { id: 'vehicle', label: 'Vehicles' },
   ];
 
@@ -72,7 +71,6 @@ export default function Inputs() {
           {activeTab === 'delivery' && <DeliveryForm />}
           {activeTab === 'gas_purchase' && <GasolinePurchaseForm />}
           {activeTab === 'gasoline' && <GasolineForm />}
-          {activeTab === 'sieve' && <PlaceholderTab label="Test Sieve" />}
           {activeTab === 'vehicle' && <VehicleForm />}
         </div>
       </div>
